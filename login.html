@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ReviewPlatform Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 max-w-md w-full">
+        <h1 class="text-2xl font-bold mb-2 text-center text-slate-900">Sign In</h1>
+        <p class="text-slate-500 text-sm text-center mb-6">Access your platform workspace.</p>
+        
+        <div id="step-email">
+            <label class="block text-sm font-semibold mb-1 text-slate-700">Email Address</label>
+            <input type="email" id="email" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500" placeholder="owner@cafe.com">
+            <button onclick="checkEmail()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-medium hover:bg-slate-800 transition-all">Continue</button>
+        </div>
+        <div id="step-password" class="hidden">
+            <label class="block text-sm font-semibold mb-1 text-slate-700">Admin Password</label>
+            <input type="password" id="password" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500" placeholder="••••••••">
+            <button onclick="loginAdmin()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all">Login to Control Panel</button>
+        </div>
+        <div id="step-otp" class="hidden">
+            <p class="text-xs text-blue-600 bg-blue-50 p-2 rounded mb-4 text-center" id="otp-message">OTP sent to your email!</p>
+            <label class="block text-sm font-semibold mb-1 text-slate-700">Enter 6-Digit OTP</label>
+            <input type="text" id="otp-code" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 tracking-widest text-center text-lg" placeholder="123456">
+            <button onclick="loginOwner()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all">Verify & Login</button>
+        </div>
+        <div class="mt-6 text-center text-sm">
+            <span class="text-slate-500">New business?</span> 
+            <a href="/register" class="text-blue-600 font-semibold hover:underline">Register here</a>
+        </div>
+    </div>
+    <script>
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+        async function checkEmail() {
+            const email = document.getElementById('email').value.trim();
+            if(!email) return alert("Enter email");
+            if(!isValidEmail(email)) return alert("Please enter a valid email address format");
+            
+            document.getElementById('step-email').classList.add('hidden');
+            
+            if (email === "qureshidawood1505@gmail.com") {
+                document.getElementById('step-password').classList.remove('hidden');
+            } else {
+                const res = await fetch('/api/auth/request-otp', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: email})
+                });
+                if(res.ok) {
+                    document.getElementById('step-otp').classList.remove('hidden');
+                } else {
+                    const data = await res.json();
+                    alert(data.detail);
+                    window.location.reload();
+                }
+            }
+        }
+        async function loginAdmin() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            executeLogin({email, password});
+        }
+        async function loginOwner() {
+            const email = document.getElementById('email').value.trim();
+            const otp = document.getElementById('otp-code').value.trim();
+            executeLogin({email, otp});
+        }
+        async function executeLogin(payload) {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            if(res.ok) {
+                const data = await res.json();
+                window.location.href = data.role === 'admin' ? '/admin' : '/dashboard';
+            } else {
+                alert("Invalid credentials.");
+            }
+        }
+    </script>
+</body>
+</html>

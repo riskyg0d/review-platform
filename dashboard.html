@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Owner Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <nav class="bg-white border-b px-8 py-4 flex justify-between items-center shadow-sm">
+        <h1 class="text-xl font-bold text-slate-800">Owner Workspace</h1>
+        <button onclick="logout()" class="text-sm text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">Logout</button>
+    </nav>
+    <div class="max-w-6xl mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-semibold mb-4 text-slate-800">My Businesses</h2>
+                <div id="businesses-list" class="space-y-3 mb-6"></div>
+                <hr class="mb-4">
+                <h3 class="text-sm font-semibold mb-2 text-slate-700">Add Another Location</h3>
+                <p class="text-xs text-slate-500 mb-3">Register multiple businesses under this same email account.</p>
+                <input type="text" id="new-b-name" class="w-full p-2.5 text-sm border rounded-xl mb-2" placeholder="Business Name">
+                <input type="text" id="new-b-link" class="w-full p-2.5 text-sm border rounded-xl mb-3" placeholder="Google Maps URL">
+                <button onclick="addBusiness()" class="w-full bg-slate-900 text-white py-2.5 rounded-xl text-sm font-medium">Register Location</button>
+            </div>
+        </div>
+        <div class="lg:col-span-2">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-h-[500px]">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-semibold text-slate-800" id="current-biz-title">Select a business</h2>
+                    <a id="public-link-btn" href="#" target="_blank" class="hidden text-sm bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200">Open Customer Form ↗</a>
+                </div>
+                <div id="reviews-list" class="space-y-4 text-slate-400 text-center py-12 text-sm">Select a business from the left.</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        async function loadBusinesses() {
+            const res = await fetch('/api/owner/businesses');
+            if(res.status === 401) { window.location.href = "/"; return; }
+            const data = await res.json();
+            const list = document.getElementById('businesses-list');
+            list.innerHTML = data.map(b => `
+                <div onclick="selectBusiness(${b.id}, '${b.name}', '${b.status}', '${b.unique_link}')" class="p-4 border rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all">
+                    <div class="flex justify-between items-center">
+                        <p class="font-semibold text-slate-800">${b.name}</p>
+                        <span class="text-xs px-2 py-1 rounded ${b.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">${b.status}</span>
+                    </div>
+                </div>
+            `).join('');
+            if(data.length > 0) selectBusiness(data[0].id, data[0].name, data[0].status, data[0].unique_link);
+        }
+        async function selectBusiness(id, name, status, unique_link) {
+            document.getElementById('current-biz-title').textContent = `Reviews for ${name}`;
+            const linkBtn = document.getElementById('public-link-btn');
+            if(status === 'approved') {
+                linkBtn.href = `/review/${unique_link}`;
+                linkBtn.classList.remove('hidden');
+            } else {
+                linkBtn.classList.add('hidden');
+            }
+            const res = await fetch(`/api/owner/reviews/${id}`);
+            const data = await res.json();
+            const list = document.getElementById('reviews-list');
+            if (data.length === 0) {
+                list.innerHTML = '<div class="text-slate-400 text-center py-12 text-sm">No reviews yet.</div>';
+                return;
+            }
+            list.innerHTML = data.map(r => `
+                <div class="p-4 border rounded-xl bg-slate-50 text-left">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-semibold">${r.customer_name}</span>
+                        <span class="text-amber-500">${'★'.repeat(r.rating)}</span>
+                    </div>
+                    <div class="text-xs mb-2">${r.tags}</div>
+                    ${r.rating < 3 ? `<div class="bg-red-50 text-red-800 text-sm p-3 rounded">Private: ${r.feedback_text}</div>` : `<div class="bg-emerald-50 text-emerald-800 text-sm p-3 rounded">AI Draft: ${r.ai_draft}</div>`}
+                </div>
+            `).join('');
+        }
+        async function addBusiness() {
+            const name = document.getElementById('new-b-name').value;
+            const link = document.getElementById('new-b-link').value;
+            await fetch('/api/owner/businesses', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, google_link: link})
+            });
+            window.location.reload();
+        }
+        async function logout() {
+            await fetch('/api/auth/logout', {method: 'POST'});
+            window.location.href = "/";
+        }
+        loadBusinesses();
+    </script>
+</body>
+</html>

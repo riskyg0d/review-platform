@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Your Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+    <header class="w-full bg-white border-b py-4 px-6 text-center shadow-xs">
+        <h1 id="business-name" class="text-lg font-bold">Loading...</h1>
+    </header>
+    <main class="max-w-md w-full mx-auto p-4 sm:p-6 my-auto" id="main-content">
+        <div id="step-rating" class="bg-white rounded-2xl shadow-sm border p-6">
+            <h2 class="text-xl font-semibold text-center mb-6">How was your experience?</h2>
+            <div class="mb-5">
+                <label class="block text-xs font-semibold mb-1">Your Name</label>
+                <input type="text" id="customer-name" class="w-full px-4 py-2 border rounded-xl" placeholder="Alex Smith">
+            </div>
+            <div class="flex justify-center space-x-2 mb-6" id="star-container">
+                <button data-value="1" class="star-btn text-3xl text-slate-300">★</button>
+                <button data-value="2" class="star-btn text-3xl text-slate-300">★</button>
+                <button data-value="3" class="star-btn text-3xl text-slate-300">★</button>
+                <button data-value="4" class="star-btn text-3xl text-slate-300">★</button>
+                <button data-value="5" class="star-btn text-3xl text-slate-300">★</button>
+            </div>
+            <div class="mb-6">
+                <label class="block text-xs font-semibold mb-2">What went well? (Select tags)</label>
+                <div id="tags-container" class="flex flex-wrap gap-2"></div>
+            </div>
+            <button id="proceed-btn" disabled class="w-full bg-blue-600 text-white py-3 rounded-xl disabled:bg-slate-200">Continue</button>
+        </div>
+        <div id="step-ai-review" class="hidden bg-white rounded-2xl shadow-sm border p-6">
+            <h2 class="text-lg font-semibold text-center mb-4">Review Ready for Google</h2>
+            <div id="ai-loading" class="text-center py-4">Generating...</div>
+            <div id="ai-content" class="hidden">
+                <textarea id="review-text-output" rows="4" class="w-full p-3 border rounded-xl mb-4"></textarea>
+                <button id="post-google-btn" class="w-full bg-emerald-600 text-white py-3 rounded-xl">Post on Google Review</button>
+            </div>
+        </div>
+        <div id="step-feedback" class="hidden bg-white rounded-2xl shadow-sm border p-6">
+            <h2 class="text-lg font-semibold text-center mb-4">Private Feedback</h2>
+            <textarea id="private-feedback-text" rows="4" class="w-full p-3 border rounded-xl mb-4" placeholder="What went wrong?"></textarea>
+            <button id="submit-feedback-btn" class="w-full bg-slate-900 text-white py-3 rounded-xl">Send to Management</button>
+        </div>
+        <div id="step-success" class="hidden bg-white rounded-2xl shadow-sm border p-8 text-center">
+            <h2 class="text-xl font-bold text-emerald-600 mb-2">Thank You!</h2>
+            <p>Your feedback has been recorded.</p>
+        </div>
+    </main>
+    <footer class="text-center py-6 text-sm">
+        <a href="/" class="text-slate-400 hover:text-slate-600 transition-colors">Business Owner Login</a>
+    </footer>
+    <script>
+        const pathParts = window.location.pathname.split('/');
+        const uniqueLink = pathParts[pathParts.length - 1];
+        let businessData = {};
+        let currentRating = 0;
+        let selectedTags = [];
+        fetch(`/api/business/public/${uniqueLink}`)
+            .then(res => {
+                if(!res.ok) throw new Error(res.status);
+                return res.json();
+            })
+            .then(data => {
+                businessData = data;
+                document.getElementById('business-name').textContent = data.name;
+            }).catch(e => {
+                let msg = "This review link is invalid or the business has not been approved yet.";
+                if(e.message === '403') msg = "This business's review portal is currently disabled by administrators.";
+                document.getElementById('main-content').innerHTML = `
+                    <div class="bg-white rounded-2xl shadow-sm border p-8 text-center">
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">Unavailable</h2>
+                        <p class="text-slate-500 mb-6">${msg}</p>
+                    </div>
+                `;
+            });
+        const tagsList = {
+            pos: ["Fast Service", "Friendly Staff", "Clean", "Great Ambiance", "Value"],
+            neg: ["Slow Service", "Rude Staff", "Dirty", "Overpriced"]
+        };
+        const starBtns = document.querySelectorAll('.star-btn');
+        starBtns.forEach((btn, idx) => {
+            btn.addEventListener('click', () => {
+                currentRating = idx + 1;
+                starBtns.forEach((b, i) => b.classList.toggle('text-amber-400', i < currentRating));
+                starBtns.forEach((b, i) => b.classList.toggle('text-slate-300', i >= currentRating));
+                const tagsContainer = document.getElementById('tags-container');
+                tagsContainer.innerHTML = '';
+                selectedTags = [];
+                const tagsToUse = currentRating >= 3 ? tagsList.pos : tagsList.neg;
+                tagsToUse.forEach(tag => {
+                    const btn = document.createElement('button');
+                    btn.textContent = tag;
+                    btn.className = "px-3 py-1 border border-slate-200 rounded-lg text-sm bg-white";
+                    btn.onclick = () => {
+                        btn.classList.toggle('bg-blue-600');
+                        btn.classList.toggle('text-white');
+                        if(selectedTags.includes(tag)) selectedTags = selectedTags.filter(t=>t!==tag);
+                        else selectedTags.push(tag);
+                    };
+                    tagsContainer.appendChild(btn);
+                });
+                document.getElementById('proceed-btn').disabled = false;
+            });
+        });
+        document.getElementById('proceed-btn').addEventListener('click', () => {
+            document.getElementById('step-rating').classList.add('hidden');
+            if (currentRating >= 3) {
+                document.getElementById('step-ai-review').classList.remove('hidden');
+                fetch('/api/ai/generate-review', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({rating: currentRating, tags: selectedTags, business_name: businessData.name, customer_name: document.getElementById('customer-name').value})
+                }).then(res=>res.json()).then(data => {
+                    document.getElementById('ai-loading').classList.add('hidden');
+                    document.getElementById('ai-content').classList.remove('hidden');
+                    document.getElementById('review-text-output').value = data.review;
+                });
+            } else {
+                document.getElementById('step-feedback').classList.remove('hidden');
+            }
+        });
+        async function saveReview(feedbackText = "", aiDraft = "") {
+            await fetch('/api/reviews/submit', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    business_link: uniqueLink,
+                    customer_name: document.getElementById('customer-name').value,
+                    rating: currentRating, tags: selectedTags, feedback_text: feedbackText, ai_draft: aiDraft
+                })
+            });
+        }
+        document.getElementById('post-google-btn').addEventListener('click', async () => {
+            const aiText = document.getElementById('review-text-output').value;
+            await saveReview("", aiText);
+            navigator.clipboard.writeText(aiText).then(() => {
+                window.location.href = businessData.google_link;
+            });
+        });
+        document.getElementById('submit-feedback-btn').addEventListener('click', async () => {
+            await saveReview(document.getElementById('private-feedback-text').value, "");
+            document.getElementById('step-feedback').classList.add('hidden');
+            document.getElementById('step-success').classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
