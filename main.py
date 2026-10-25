@@ -118,6 +118,9 @@ def send_otp_email_sync(to_email: str, otp_code: str):
         server.quit()
     except Exception as e:
         print(f"Failed to send email to {to_email}: {e}")
+        # EMERGENCY BYPASS: Print the OTP to the Railway console so you aren't locked out!
+        print(f"\n{'='*40}\n[EMERGENCY OTP] Code for {to_email} is: {otp_code}\n{'='*40}\n")
+
 
 class RegisterOTPReq(BaseModel):
     email: str
