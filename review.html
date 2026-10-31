@@ -222,7 +222,7 @@ function renderTags() {
             
             selectedTags = [];
             
-            let rawTags = currentRating >= 3 ? businessData.positive_tags : businessData.negative_tags;
+            let rawTags = currentRating >= 4 ? businessData.positive_tags : businessData.negative_tags;
             let tagsToUse = [];
 
             if (Array.isArray(rawTags)) {
@@ -259,7 +259,9 @@ function renderTags() {
 
         document.getElementById('proceed-btn').addEventListener('click', () => {
             document.getElementById('step-rating').classList.add('hidden');
-            if (currentRating >= 3) {
+            
+            if (currentRating >= 4) {
+                // 4 and 5 stars: Direct to Google review generation
                 document.getElementById('step-ai-review').classList.remove('hidden');
                 fetch('/api/ai/generate-review', {
                     method: 'POST', headers: {'Content-Type':'application/json'},
@@ -277,10 +279,11 @@ function renderTags() {
                     document.getElementById('review-text-output').value = data.review;
                 });
             } else {
+                // 1, 2, and 3 stars: Open feedback / areas of improvement step
                 document.getElementById('step-feedback').classList.remove('hidden');
                 renderTags();
             }
-        });
+        });        
 
         async function saveReview(feedbackText = "", aiDraft = "") {
             await fetch('/api/reviews/submit', {
