@@ -20,11 +20,22 @@
             <input type="password" id="password" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500" placeholder="••••••••">
             <button onclick="loginAdmin()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all">Login to Control Panel</button>
         </div>
+        <div id="step-auth-choice" class="hidden text-center space-y-4">
+            <p class="text-sm text-slate-600 mb-2">Choose how you want to sign in:</p>
+            <button onclick="requestOTP()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-medium hover:bg-slate-800 transition-all">Send OTP via Email</button>
+            <div id="pin-section" class="hidden pt-2 border-t">
+                <label class="block text-sm font-semibold mb-1 text-slate-700 text-left">Or Enter Your 4-Digit PIN</label>
+                <div class="flex space-x-2">
+                    <input type="password" id="login-pin" maxlength="4" class="w-full p-3 border rounded-xl tracking-widest text-center text-lg" placeholder="••••">
+                    <button onclick="loginWithPin()" class="bg-blue-600 text-white px-6 rounded-xl font-medium hover:bg-blue-700">Login</button>
+                </div>
+            </div>
+        </div>
         <div id="step-otp" class="hidden">
-            <p class="text-xs text-blue-600 bg-blue-50 p-2 rounded mb-4 text-center" id="otp-message">OTP sent to your email!</p>
+            <p class="text-xs text-blue-600 bg-blue-50 p-2 rounded mb-4 text-center">OTP sent to your email!</p>
             <label class="block text-sm font-semibold mb-1 text-slate-700">Enter 6-Digit OTP</label>
             <input type="text" id="otp-code" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 tracking-widest text-center text-lg" placeholder="123456">
-            <button onclick="loginOwner()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all">Verify & Login</button>
+            <button onclick="loginOwnerOTP()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all">Verify & Login</button>
         </div>
         <div class="mt-6 text-center text-sm">
             <span class="text-slate-500">New business?</span> 
@@ -32,6 +43,7 @@
         </div>
     </div>
     <script>
+        let globalEmail = "";
         function isValidEmail(email) {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         }
@@ -39,34 +51,43 @@
             const email = document.getElementById('email').value.trim();
             if(!email) return alert("Enter email");
             if(!isValidEmail(email)) return alert("Please enter a valid email address format");
+            globalEmail = email;
             
             document.getElementById('step-email').classList.add('hidden');
             
             if (email === "qureshidawood1505@gmail.com") {
                 document.getElementById('step-password').classList.remove('hidden');
             } else {
-                const res = await fetch('/api/auth/request-otp', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email: email})
-                });
-                if(res.ok) {
-                    document.getElementById('step-otp').classList.remove('hidden');
-                } else {
-                    const data = await res.json();
-                    alert(data.detail);
-                    window.location.reload();
-                }
+                document.getElementById('step-auth-choice').classList.remove('hidden');
+                document.getElementById('pin-section').classList.remove('hidden');
             }
         }
-        async function loginAdmin() {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value.trim();
-            executeLogin({email, password});
+        async function requestOTP() {
+            const res = await fetch('/api/auth/request-otp', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email: globalEmail})
+            });
+            if(res.ok) {
+                document.getElementById('step-auth-choice').classList.add('hidden');
+                document.getElementById('step-otp').classList.remove('hidden');
+            } else {
+                const data = await res.json();
+                alert(data.detail);
+                window.location.reload();
+            }
         }
-        async function loginOwner() {
-            const email = document.getElementById('email').value.trim();
+        async function loginWithPin() {
+            const pin = document.getElementById('login-pin').value.trim();
+            if(!pin) return alert("Enter your PIN");
+            executeLogin({email: globalEmail, pin: pin});
+        }
+        async function loginAdmin() {
+            const password = document.getElementById('password').value.trim();
+            executeLogin({email: globalEmail, password});
+        }
+        async function loginOwnerOTP() {
             const otp = document.getElementById('otp-code').value.trim();
-            executeLogin({email, otp});
+            executeLogin({email: globalEmail, otp});
         }
         async function executeLogin(payload) {
             const res = await fetch('/api/auth/login', {
@@ -77,7 +98,7 @@
                 const data = await res.json();
                 window.location.href = data.role === 'admin' ? '/admin' : '/dashboard';
             } else {
-                alert("Invalid credentials.");
+                alert("Invalid credentials or PIN.");
             }
         }
     </script>

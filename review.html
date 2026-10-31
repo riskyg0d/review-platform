@@ -49,8 +49,8 @@
             <button id="submit-feedback-btn" class="w-full bg-slate-900 text-white py-3 rounded-xl">Send to Management</button>
         </div>
         <div id="step-success" class="hidden bg-white rounded-2xl shadow-sm border p-8 text-center">
-            <h2 class="text-xl font-bold text-emerald-600 mb-2">Thank You!</h2>
-            <p>Your feedback has been recorded.</p>
+            <h2 id="ui-success-title" class="text-xl font-bold text-emerald-600 mb-2">Thank You!</h2>
+            <p id="ui-success-desc">Your feedback has been recorded.</p>
         </div>
     </main>
     <footer class="text-center py-6 text-sm">
@@ -73,7 +73,9 @@
                 readyTitle: "Review Ready for Google",
                 postGoogle: "Post on Google Review",
                 privateTitle: "Private Feedback",
-                sendMgmt: "Send to Management"
+                sendMgmt: "Send to Management",
+                successTitle: "Thank You!",
+                successDesc: "Your feedback has been recorded."
             },
             hi: {
                 title: "आपका अनुभव कैसा रहा?",
@@ -83,17 +85,21 @@
                 readyTitle: "गूगल के लिए समीक्षा तैयार है",
                 postGoogle: "गूगल समीक्षा पर पोस्ट करें",
                 privateTitle: "निजी प्रतिक्रिया",
-                sendMgmt: "मैनेजमेंट को भेजें"
+                sendMgmt: "मैनेजमेंट को भेजें",
+                successTitle: "धन्यवाद!",
+                successDesc: "आपकी प्रतिक्रिया दर्ज कर ली गई है।"
             },
             mr: {
                 title: "तुमचा अनुभव कसा होता?",
                 nameLabel: "तुमचे नाव",
                 tagsLabel: "काय चांगले झाले? (टॅग निवडा)",
-                continueBtn: "पुढе जा",
+                continueBtn: "पुढे जा",
                 readyTitle: "गुगल रिव्ह्यू तयार आहे",
                 postGoogle: "गुगल रिव्ह्यू वर पोस्ट करा",
                 privateTitle: "खाजगी अभिप्राय",
-                sendMgmt: "व्यवस्थापनाकडे पाठवा"
+                sendMgmt: "व्यवस्थापनाकडे पाठवा",
+                successTitle: "धन्यवाद!",
+                successDesc: "तुमचा अभिप्राय नोंदवला गेला आहे."
             }
         };
 
@@ -108,6 +114,10 @@
             document.getElementById('post-google-btn').textContent = t.postGoogle;
             document.getElementById('ui-private-title').textContent = t.privateTitle;
             document.getElementById('submit-feedback-btn').textContent = t.sendMgmt;
+            document.getElementById('ui-success-title').textContent = t.successTitle;
+            document.getElementById('ui-success-desc').textContent = t.successDesc;
+            
+            if (currentRating > 0) renderTags();
         }
 
         fetch(`/api/business/public/${uniqueLink}`)
@@ -135,29 +145,32 @@
                 currentRating = idx + 1;
                 starBtns.forEach((b, i) => b.classList.toggle('text-amber-400', i < currentRating));
                 starBtns.forEach((b, i) => b.classList.toggle('text-slate-300', i >= currentRating));
-                
-                const tagsContainer = document.getElementById('tags-container');
-                tagsContainer.innerHTML = '';
-                selectedTags = [];
-                
-                let rawTags = currentRating >= 3 ? businessData.positive_tags : businessData.negative_tags;
-                let tagsToUse = rawTags ? rawTags.split(',').map(t => t.trim()).filter(Boolean) : [];
-
-                tagsToUse.forEach(tag => {
-                    const btn = document.createElement('button');
-                    btn.textContent = tag;
-                    btn.className = "px-3 py-1 border border-slate-200 rounded-lg text-sm bg-white";
-                    btn.onclick = () => {
-                        btn.classList.toggle('bg-blue-600');
-                        btn.classList.toggle('text-white');
-                        if(selectedTags.includes(tag)) selectedTags = selectedTags.filter(t=>t!==tag);
-                        else selectedTags.push(tag);
-                    };
-                    tagsContainer.appendChild(btn);
-                });
+                renderTags();
                 document.getElementById('proceed-btn').disabled = false;
             });
         });
+
+        function renderTags() {
+            const tagsContainer = document.getElementById('tags-container');
+            tagsContainer.innerHTML = '';
+            selectedTags = [];
+            
+            let rawTags = currentRating >= 3 ? businessData.positive_tags : businessData.negative_tags;
+            let tagsToUse = rawTags ? rawTags.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+            tagsToUse.forEach(tag => {
+                const btn = document.createElement('button');
+                btn.textContent = tag;
+                btn.className = "px-3 py-1 border border-slate-200 rounded-lg text-sm bg-white";
+                btn.onclick = () => {
+                    btn.classList.toggle('bg-blue-600');
+                    btn.classList.toggle('text-white');
+                    if(selectedTags.includes(tag)) selectedTags = selectedTags.filter(t=>t!==tag);
+                    else selectedTags.push(tag);
+                };
+                tagsContainer.appendChild(btn);
+            });
+        }
 
         document.getElementById('proceed-btn').addEventListener('click', () => {
             document.getElementById('step-rating').classList.add('hidden');

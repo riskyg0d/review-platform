@@ -8,7 +8,10 @@
 <body class="bg-slate-100 min-h-screen">
     <nav class="bg-white border-b px-8 py-4 flex justify-between items-center shadow-sm">
         <h1 class="text-xl font-bold text-slate-800">Owner Workspace</h1>
-        <button onclick="logout()" class="text-sm text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">Logout</button>
+        <div class="flex space-x-3 items-center">
+            <button onclick="document.getElementById('pin-modal').classList.remove('hidden')" class="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg font-medium">Update PIN</button>
+            <button onclick="logout()" class="text-sm text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">Logout</button>
+        </div>
     </nav>
     <div class="max-w-6xl mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div class="lg:col-span-1 space-y-6">
@@ -41,6 +44,18 @@
                     <a id="public-link-btn" href="#" target="_blank" class="hidden text-sm bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200">Open Customer Form ↗</a>
                 </div>
                 <div id="reviews-list" class="space-y-4 text-slate-400 text-center py-12 text-sm">Select a business from the left.</div>
+            </div>
+        </div>
+    </div>
+    <!-- PIN Modal -->
+    <div id="pin-modal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-lg border">
+            <h2 class="text-xl font-bold mb-1 text-slate-900">Set Quick Login PIN</h2>
+            <p class="text-sm text-slate-500 mb-4">Enter a 4-digit PIN for quick sign-in.</p>
+            <input type="password" id="new-pin" maxlength="4" class="w-full p-3 border rounded-xl mb-4 tracking-widest text-center text-lg" placeholder="••••">
+            <div class="flex justify-end space-x-3">
+                <button onclick="document.getElementById('pin-modal').classList.add('hidden')" class="px-4 py-2 text-sm text-slate-600">Cancel</button>
+                <button onclick="updatePin()" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl">Save PIN</button>
             </div>
         </div>
     </div>
@@ -116,6 +131,21 @@
                 currentSelectedBusiness.negative_tags = negative_tags;
             } else {
                 alert("Error saving tags");
+            }
+        }
+        
+        async function updatePin() {
+            const pin = document.getElementById('new-pin').value.trim();
+            if(!pin || pin.length !== 4) return alert("Enter a valid 4-digit PIN");
+            const res = await fetch('/api/auth/set-pin', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({pin})
+            });
+            if(res.ok) {
+                alert("PIN updated successfully!");
+                document.getElementById('pin-modal').classList.add('hidden');
+            } else {
+                alert("Error updating PIN");
             }
         }
         

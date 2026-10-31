@@ -22,13 +22,17 @@
                 <label class="block text-sm font-semibold mb-1 text-slate-700">Google Maps Link</label>
                 <input type="text" id="r-link" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="https://maps.google.com/...">
             </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1 text-slate-700">Set Quick Login PIN (4 Digits)</label>
+                <input type="password" id="r-pin" maxlength="4" class="w-full p-3 border rounded-xl tracking-widest text-center text-lg focus:ring-2 focus:ring-blue-500" placeholder="••••">
+            </div>
             <button onclick="sendOTP()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-medium hover:bg-slate-800 transition-all mt-2">Send OTP</button>
         </div>
         <div id="step-verify" class="hidden space-y-4">
             <p class="text-xs text-blue-600 bg-blue-50 p-2 rounded text-center">OTP sent to your email!</p>
             <div>
                 <label class="block text-sm font-semibold mb-1 text-slate-700">Enter 6-Digit OTP</label>
-                <input type="text" id="otp-code" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 tracking-widest text-center text-lg" placeholder="123456">
+                <input type="text" id="otp-code" class="w-full p-3 border rounded-xl tracking-widest text-center text-lg focus:ring-2 focus:ring-blue-500" placeholder="123456">
             </div>
             <button onclick="verifyAndRegister()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all mt-2">Verify & Register</button>
         </div>
@@ -58,11 +62,12 @@
             const email = document.getElementById('r-email').value.trim();
             const name = document.getElementById('r-name').value.trim();
             const link = document.getElementById('r-link').value.trim();
+            const pin = document.getElementById('r-pin').value.trim();
             const otp = document.getElementById('otp-code').value.trim();
             if(!otp) return alert("Enter OTP");
             const res = await fetch('/api/auth/register-verify', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({email: email, otp: otp, business_name: name, google_link: link})
+                body: JSON.stringify({email: email, otp: otp, pin: pin, business_name: name, google_link: link})
             });
             if(res.ok) {
                 alert("Registration successful! Redirecting to login.");
