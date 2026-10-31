@@ -212,16 +212,24 @@
                 "Stale Items": "शिळ्या वस्तू", "Dry Cake": "कोरा केक", "Too Sweet": "खूप गोड", "Melted Frosting": "वितळलेली फ्रॉस्टिंग", "Broken Packaging": "तुटलेले पॅकेजिंग", "Hair Found": "केश आढळला", "Limited Options": "मर्यादित पर्याय"
             }
         };
-
-function renderTags() {
-            const containerId = currentRating >= 3 ? 'tags-container' : 'neg-tags-container';
+        function renderTags() {
+            const containerId = currentRating >= 4 ? 'tags-container' : 'neg-tags-container';
             const tagsContainer = document.getElementById(containerId);
             
+            // Clear both containers
             document.getElementById('tags-container').innerHTML = '';
             document.getElementById('neg-tags-container').innerHTML = '';
             
             selectedTags = [];
             
+            // Dynamically change the label above the tags based on rating
+            const tagsLabelEl = document.getElementById('ui-tags-label');
+            if (currentRating >= 4) {
+                tagsLabelEl.textContent = currentLang === 'hi' ? "क्या अच्छा रहा? (अधिकतम 5 टैग चुनें)" : (currentLang === 'mr' ? "काय चांगले झाले? (जास्तीत जास्त ५ टॅग निवडा)" : "What went well? (Select up to 5 tags)");
+            } else {
+                tagsLabelEl.textContent = currentLang === 'hi' ? "सुधार के क्षेत्र (अधिकतम 5 टैग चुनें)" : (currentLang === 'mr' ? "सुधारणेचे क्षेत्र (जास्तीत जास्त ५ टॅग निवडा)" : "Areas of Improvement (Select up to 5 tags)");
+            }
+
             let rawTags = currentRating >= 4 ? businessData.positive_tags : businessData.negative_tags;
             let tagsToUse = [];
 
