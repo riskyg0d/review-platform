@@ -30,23 +30,25 @@
                 <button data-value="5" class="star-btn text-3xl text-slate-300">★</button>
             </div>
             <div class="mb-6">
-                <label id="ui-tags-label" class="block text-xs font-semibold mb-2">What went well? (Select tags)</label>
+                <label id="ui-tags-label" class="block text-xs font-semibold mb-2">What went well? (Select up to 5 tags)</label>
                 <div id="tags-container" class="flex flex-wrap gap-2"></div>
             </div>
-            <button id="proceed-btn" disabled class="w-full bg-blue-600 text-white py-3 rounded-xl disabled:bg-slate-200">Continue</button>
+            <button id="proceed-btn" disabled class="w-full bg-blue-600 text-white py-3 rounded-xl disabled:bg-slate-200 font-medium">Continue</button>
         </div>
         <div id="step-ai-review" class="hidden bg-white rounded-2xl shadow-sm border p-6">
             <h2 id="ui-ready-title" class="text-lg font-semibold text-center mb-4">Review Ready for Google</h2>
             <div id="ai-loading" class="text-center py-4">Generating...</div>
             <div id="ai-content" class="hidden">
                 <textarea id="review-text-output" rows="4" class="w-full p-3 border rounded-xl mb-4"></textarea>
-                <button id="post-google-btn" class="w-full bg-emerald-600 text-white py-3 rounded-xl">Post on Google Review</button>
+                <button id="post-google-btn" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium">Post on Google Review</button>
             </div>
         </div>
         <div id="step-feedback" class="hidden bg-white rounded-2xl shadow-sm border p-6">
-            <h2 id="ui-private-title" class="text-lg font-semibold text-center mb-4">Private Feedback</h2>
-            <textarea id="private-feedback-text" rows="4" class="w-full p-3 border rounded-xl mb-4" placeholder="What went wrong?"></textarea>
-            <button id="submit-feedback-btn" class="w-full bg-slate-900 text-white py-3 rounded-xl">Send to Management</button>
+            <h2 id="ui-private-title" class="text-lg font-semibold text-center mb-4">Areas of Improvement / Private Feedback</h2>
+            <p id="ui-private-desc" class="text-xs text-slate-500 mb-2">Please select tags above or tell us what went wrong so we can improve:</p>
+            <div id="neg-tags-container" class="flex flex-wrap gap-2 mb-4"></div>
+            <textarea id="private-feedback-text" rows="3" class="w-full p-3 border rounded-xl mb-4 text-xs" placeholder="Additional details (optional)..."></textarea>
+            <button id="submit-feedback-btn" class="w-full bg-slate-900 text-white py-3 rounded-xl font-medium">Send to Management</button>
         </div>
         <div id="step-success" class="hidden bg-white rounded-2xl shadow-sm border p-8 text-center">
             <h2 id="ui-success-title" class="text-xl font-bold text-emerald-600 mb-2">Thank You!</h2>
@@ -63,16 +65,18 @@
         let currentRating = 0;
         let selectedTags = [];
         let currentLang = 'en';
+        const MAX_TAGS = 5;
 
         const i18n = {
             en: {
                 title: "How was your experience?",
                 nameLabel: "Your Name",
-                tagsLabel: "What went well? (Select tags)",
+                tagsLabel: "What went well? (Select up to 5 tags)",
                 continueBtn: "Continue",
                 readyTitle: "Review Ready for Google",
                 postGoogle: "Post on Google Review",
-                privateTitle: "Private Feedback",
+                privateTitle: "Areas of Improvement / Private Feedback",
+                privateDesc: "Please select tags above or tell us what went wrong so we can improve:",
                 sendMgmt: "Send to Management",
                 successTitle: "Thank You!",
                 successDesc: "Your feedback has been recorded."
@@ -80,11 +84,12 @@
             hi: {
                 title: "आपका अनुभव कैसा रहा?",
                 nameLabel: "आपका नाम",
-                tagsLabel: "क्या अच्छा रहा? (टैग चुनें)",
+                tagsLabel: "क्या अच्छा रहा? (अधिकतम 5 टैग चुनें)",
                 continueBtn: "आगे बढ़ें",
                 readyTitle: "गूगल के लिए समीक्षा तैयार है",
                 postGoogle: "गूगल समीक्षा पर पोस्ट करें",
-                privateTitle: "निजी प्रतिक्रिया",
+                privateTitle: "सुधार के क्षेत्र / निजी प्रतिक्रिया",
+                privateDesc: "कृपया सुधार के लिए नीचे दिए गए टैग चुनें या बताएं कि क्या गलत हुआ:",
                 sendMgmt: "मैनेजमेंट को भेजें",
                 successTitle: "धन्यवाद!",
                 successDesc: "आपकी प्रतिक्रिया दर्ज कर ली गई है।"
@@ -92,11 +97,12 @@
             mr: {
                 title: "तुमचा अनुभव कसा होता?",
                 nameLabel: "तुमचे नाव",
-                tagsLabel: "काय चांगले झाले? (टॅग निवडा)",
+                tagsLabel: "काय चांगले झाले? (जास्तीत जास्त ५ टॅग निवडा)",
                 continueBtn: "पुढे जा",
                 readyTitle: "गुगल रिव्ह्यू तयार आहे",
                 postGoogle: "गुगल रिव्ह्यू वर पोस्ट करा",
-                privateTitle: "खाजगी अभिप्राय",
+                privateTitle: "सुधारणेचे क्षेत्र / खाजगी अभिप्राय",
+                privateDesc: "कृपया सुधारण्यासाठी खालील टॅग निवडा किंवा काय चुकले ते सांगा:",
                 sendMgmt: "व्यवस्थापनाकडे पाठवा",
                 successTitle: "धन्यवाद!",
                 successDesc: "तुमचा अभिप्राय नोंदवला गेला आहे."
@@ -113,6 +119,7 @@
             document.getElementById('ui-ready-title').textContent = t.readyTitle;
             document.getElementById('post-google-btn').textContent = t.postGoogle;
             document.getElementById('ui-private-title').textContent = t.privateTitle;
+            document.getElementById('ui-private-desc').textContent = t.privateDesc;
             document.getElementById('submit-feedback-btn').textContent = t.sendMgmt;
             document.getElementById('ui-success-title').textContent = t.successTitle;
             document.getElementById('ui-success-desc').textContent = t.successDesc;
@@ -129,12 +136,10 @@
                 businessData = data;
                 document.getElementById('business-name').textContent = data.name;
             }).catch(e => {
-                let msg = "This review link is invalid or the business has not been approved yet.";
-                if(e.message === '403') msg = "This business's review portal is currently disabled by administrators.";
                 document.getElementById('main-content').innerHTML = `
                     <div class="bg-white rounded-2xl shadow-sm border p-8 text-center">
                         <h2 class="text-xl font-bold text-slate-800 mb-2">Unavailable</h2>
-                        <p class="text-slate-500 mb-6">${msg}</p>
+                        <p class="text-slate-500 mb-6">This review link is invalid or disabled.</p>
                     </div>
                 `;
             });
@@ -151,8 +156,13 @@
         });
 
         function renderTags() {
-            const tagsContainer = document.getElementById('tags-container');
-            tagsContainer.innerHTML = '';
+            const containerId = currentRating >= 3 ? 'tags-container' : 'neg-tags-container';
+            const tagsContainer = document.getElementById(containerId);
+            
+            // If < 3 stars, also clear main tags container or vice versa
+            document.getElementById('tags-container').innerHTML = '';
+            document.getElementById('neg-tags-container').innerHTML = '';
+            
             selectedTags = [];
             
             let rawTags = currentRating >= 3 ? businessData.positive_tags : businessData.negative_tags;
@@ -160,13 +170,45 @@
 
             tagsToUse.forEach(tag => {
                 const btn = document.createElement('button');
-                btn.textContent = tag;
-                btn.className = "px-3 py-1 border border-slate-200 rounded-lg text-sm bg-white";
+                let displayTag = tag;
+                if (currentLang === 'hi') {
+                    if (tag === 'Fast Service') displayTag = 'तेज सेवा';
+                    if (tag === 'Friendly Staff') displayTag = 'मिलनसार स्टाफ';
+                    if (tag === 'Clean') displayTag = 'साफ-सुथरा';
+                    if (tag === 'Great Ambiance') displayTag = 'अच्छा माहौल';
+                    if (tag === 'Value for Money') displayTag = 'पैसा वसूल';
+                    if (tag === 'Slow Service') displayTag = 'धीमी सेवा';
+                    if (tag === 'Rude Staff') displayTag = 'रूखा स्टाफ';
+                    if (tag === 'Dirty') displayTag = 'गंदा';
+                    if (tag === 'Overpriced') displayTag = 'महंगा';
+                    if (tag === 'Poor Quality') displayTag = 'खराब गुणवत्ता';
+                } else if (currentLang === 'mr') {
+                    if (tag === 'Fast Service') displayTag = 'जलद सेवा';
+                    if (tag === 'Friendly Staff') displayTag = 'अनुकूल कर्मचारी';
+                    if (tag === 'Clean') displayTag = 'स्वच्छ';
+                    if (tag === 'Great Ambiance') displayTag = 'चांगले वातावरण';
+                    if (tag === 'Value for Money') displayTag = 'पैशाचे मूल्य';
+                    if (tag === 'Slow Service') displayTag = 'हळू सेवा';
+                    if (tag === 'Rude Staff') displayTag = 'उद्धट कर्मचारी';
+                    if (tag === 'Dirty') displayTag = 'अस्वच्छ';
+                    if (tag === 'Overpriced') displayTag = 'महाग';
+                    if (tag === 'Poor Quality') displayTag = 'वाईट दर्जा';
+                }
+
+                btn.textContent = displayTag;
+                btn.className = "px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white font-medium hover:border-blue-500 transition-all";
                 btn.onclick = () => {
-                    btn.classList.toggle('bg-blue-600');
-                    btn.classList.toggle('text-white');
-                    if(selectedTags.includes(tag)) selectedTags = selectedTags.filter(t=>t!==tag);
-                    else selectedTags.push(tag);
+                    if(selectedTags.includes(tag)) {
+                        selectedTags = selectedTags.filter(t => t !== tag);
+                        btn.classList.remove('bg-blue-600', 'text-white');
+                    } else {
+                        if(selectedTags.length >= MAX_TAGS) {
+                            alert(currentLang === 'hi' ? "आप अधिकतम 5 टैग चुन सकते हैं।" : (currentLang === 'mr' ? "तुम्ही जास्तीत जास्त ५ टॅग निवडू शकता." : "You can select a maximum of 5 tags."));
+                            return;
+                        }
+                        selectedTags.push(tag);
+                        btn.classList.add('bg-blue-600', 'text-white');
+                    }
                 };
                 tagsContainer.appendChild(btn);
             });
@@ -192,6 +234,7 @@
                 });
             } else {
                 document.getElementById('step-feedback').classList.remove('hidden');
+                renderTags(); // Render negative tags into feedback step
             }
         });
 
@@ -215,7 +258,9 @@
         });
 
         document.getElementById('submit-feedback-btn').addEventListener('click', async () => {
-            await saveReview(document.getElementById('private-feedback-text').value, "");
+            const extraText = document.getElementById('private-feedback-text').value;
+            const combinedFeedback = `Selected Areas to Improve: ${selectedTags.join(', ')} | Notes: ${extraText}`;
+            await saveReview(combinedFeedback, "");
             document.getElementById('step-feedback').classList.add('hidden');
             document.getElementById('step-success').classList.remove('hidden');
         });
