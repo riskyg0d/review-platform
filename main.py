@@ -288,8 +288,10 @@ async def register_verify(req: RegisterVerifyReq):
             unique_slug = uuid.uuid4().hex[:12]
             
             preset = CATEGORY_PRESETS.get(req.category, CATEGORY_PRESETS["Restaurant / Cafe"])
-            pos = preset["pos"]
-            neg = preset["neg"]
+            pos_list = [t.strip() for t in preset["pos"].split(',') if t.strip()][:5]
+            neg_list = [t.strip() for t in preset["neg"].split(',') if t.strip()][:5]
+            pos = ",".join(pos_list)
+            neg = ",".join(neg_list)
 
             await db.execute(f"UPDATE users SET otp_code = NULL, pin_code = ? WHERE id = ?", (req.pin or None, owner_id))
             await db.execute("INSERT INTO businesses (owner_id, name, category, google_link, unique_link, status, positive_tags, negative_tags) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)", 
@@ -386,8 +388,10 @@ async def add_business_inside_dashboard(req: BusinessCreate, auth_token: Optiona
     if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
     
     preset = CATEGORY_PRESETS.get(req.category, CATEGORY_PRESETS["Restaurant / Cafe"])
-    pos = preset["pos"]
-    neg = preset["neg"]
+    pos_list = [t.strip() for t in preset["pos"].split(',') if t.strip()][:5]
+    neg_list = [t.strip() for t in preset["neg"].split(',') if t.strip()][:5]
+    pos = ",".join(pos_list)
+    neg = ",".join(neg_list)
 
     unique_slug = uuid.uuid4().hex[:12]
     async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:

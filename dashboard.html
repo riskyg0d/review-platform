@@ -45,7 +45,7 @@
                 <div id="pos-checkboxes" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto mb-3 p-2 border rounded-xl bg-slate-50"></div>
                 <label class="block text-xs font-semibold mb-1 text-slate-700">Negative Tags (Rating < 3)</label>
                 <div id="neg-checkboxes" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto mb-3 p-2 border rounded-xl bg-slate-50"></div>
-                <button onclick="saveTags()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save Selected Tags</button>
+                <button onclick="saveTagSelection()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save Selected Tags</button>
             </div>
         </div>
         
@@ -117,13 +117,13 @@
             
             posContainer.innerHTML = (b.preset_positive || []).map(t => `
                 <label class="inline-flex items-center text-xs bg-white border px-2 py-1 rounded-lg cursor-pointer hover:bg-blue-50">
-                    <input type="checkbox" value="${t}" ${activePos.includes(t) ? 'checked' : ''} class="pos-chk rounded text-blue-600 mr-1.5"> ${t}
+                    <input type="checkbox" value="${t}" ${activePos.includes(t) ? 'checked' : ''} onchange="limitCheck(this, 'pos-chk', 5)" class="pos-chk rounded text-blue-600 mr-1.5"> ${t}
                 </label>
             `).join('');
             
             negContainer.innerHTML = (b.preset_negative || []).map(t => `
                 <label class="inline-flex items-center text-xs bg-white border px-2 py-1 rounded-lg cursor-pointer hover:bg-red-50">
-                    <input type="checkbox" value="${t}" ${activeNeg.includes(t) ? 'checked' : ''} class="neg-chk rounded text-red-600 mr-1.5"> ${t}
+                    <input type="checkbox" value="${t}" ${activeNeg.includes(t) ? 'checked' : ''} onchange="limitCheck(this, 'neg-chk', 5)" class="neg-chk rounded text-red-600 mr-1.5"> ${t}
                 </label>
             `).join('');
             
@@ -148,7 +148,27 @@
                 });
         }
         
-        async function saveTags() {
+        async 
+        function limitCheck(checkbox, className, maxLimit) {
+            const checkedCount = document.querySelectorAll('.' + className + ':checked').length;
+            if (checkedCount > maxLimit) {
+                alert("You can select a maximum of " + maxLimit + " tags.");
+                checkbox.checked = false;
+            }
+        }
+
+        function saveTagSelection() {
+            const pos = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
+            const neg = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
+            if(pos.length === 0 || neg.length === 0) {
+                alert("Please select at least some tags.");
+                return;
+            }
+            saveTagsExplicit(pos, neg);
+        }
+
+        async function saveTagsExplicit(positive_tags, negative_tags) {
+    
             if(!currentSelectedBusiness) return;
             const positive_tags = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
             const negative_tags = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
