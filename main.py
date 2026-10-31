@@ -19,7 +19,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_NAME = os.getenv("DB_NAME", "/data/platform_data.db")
+# Use DB_NAME from environment or fallback safely to a local relative file
+DB_NAME = os.getenv("DB_NAME", "platform_data.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret_key_please_change_in_production")
 ALGORITHM = "HS256"
 
@@ -31,7 +32,6 @@ ADMIN_EMAIL = "qureshidawood1505@gmail.com"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# 10 Detailed Categories with exactly 15 Positive and 15 Negative tags each (English)
 CATEGORY_PRESETS = {
     "Restaurant / Cafe": {
         "pos": "Great Food,Fast Service,Clean,Friendly Staff,Good Ambiance,Value for Money,Fresh Ingredients,Tasty,Cozy Vibe,Great Portions,Authentic Taste,Hygienic,Prompt Delivery,Well Prepared,Scenic View",
@@ -76,7 +76,9 @@ CATEGORY_PRESETS = {
 }
 
 async def init_db():
-    os.makedirs(os.path.dirname(DB_NAME), exist_ok=True)
+    db_dir = os.path.dirname(DB_NAME)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     async with aiosqlite.connect(DB_NAME) as db:
         await db.execute("PRAGMA busy_timeout = 5000")
         
@@ -170,7 +172,7 @@ class RegisterVerifyReq(BaseModel):
     otp: str
     pin: Optional[str] = ""
     business_name: str
-    category: str
+    category: Optional[str] = "Restaurant / Cafe"
     google_link: str
 
 class LoginRequest(BaseModel):
@@ -187,7 +189,7 @@ class OTPRequest(BaseModel):
 
 class BusinessCreate(BaseModel):
     name: str
-    category: str
+    category: Optional[str] = "Restaurant / Cafe"
     google_link: str
 
 class TagUpdate(BaseModel):
@@ -287,8 +289,8 @@ async def register_verify(req: RegisterVerifyReq):
             owner_id = user[0]
             unique_slug = uuid.uuid4().hex[:12]
             
-            # Fetch category preset and default to first 5 tags
-            preset = CATEGORY_PRESETS.get(req.category or "Restaurant / Cafe", CATEGORY_PRESETS["Restaurant / Cafe"])
+            cat = req.category or "Restaurant / Cafe"
+            preset = CATEGORY_PRESETS.get(cat, CATEGORY_PRESETS["Restaurant / Cafe"])
             pos_list = [t.strip() for t in preset["pos"].split(',') if t.strip()][:5]
             neg_list = [t.strip() for t in preset["neg"].split(',') if t.strip()][:5]
             pos = ",".join(pos_list)
@@ -297,7 +299,7 @@ async def register_verify(req: RegisterVerifyReq):
             await db.execute(f"UPDATE users SET otp_code = NULL, pin_code = ? WHERE id = ?", (req.pin or None, owner_id))
             await db.execute(
                 "INSERT INTO businesses (owner_id, name, category, google_link, unique_link, status, positive_tags, negative_tags) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)", 
-                (owner_id, req.business_name, req.category or "Restaurant / Cafe", req.google_link, unique_slug, pos, neg)
+                (owner_id, req.business_name, cat, req.google_link, unique_slug, pos, neg)
             )
         await db.commit()
     return {"message": "Registration successful!"}
@@ -358,13 +360,7 @@ async def set_pin(req: SetPinRequest, auth_token: Optional[str] = Cookie(None)):
 
 @app.post("/api/auth/logout")
 async def logout(response: Response):
-    response.delete_cookie(
-        key="auth_token", 
-        path="/", 
-        samesite="lax", 
-        secure=True, 
-        httponly=True
-    )
+    response.delete_cookie(key="auth_token", path="/", samesite="lax", secure=True, httponly=True)
     return {"message": "Logged out"}
 
 @app.get("/api/owner/businesses")
@@ -380,11 +376,9 @@ async def get_my_businesses(auth_token: Optional[str] = Cookie(None)):
         result = []
         for row in rows:
             b_dict = dict(row)
-            # Ensure positive_tags and negative_tags are returned as lists for checkboxes/selection
             b_dict['positive_tags'] = [t.strip() for t in b_dict['positive_tags'].split(',') if t.strip()]
             b_dict['negative_tags'] = [t.strip() for t in b_dict['negative_tags'].split(',') if t.strip()]
             
-            # Also fetch all 15 preset options for this category so the owner can select from them
             preset = CATEGORY_PRESETS.get(b_dict['category'], CATEGORY_PRESETS["Restaurant / Cafe"])
             b_dict['preset_positive'] = [t.strip() for t in preset['pos'].split(',')]
             b_dict['preset_negative'] = [t.strip() for t in preset['neg'].split(',')]
@@ -396,7 +390,8 @@ async def add_business_inside_dashboard(req: BusinessCreate, auth_token: Optiona
     user = get_current_user(auth_token)
     if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
     
-    preset = CATEGORY_PRESETS.get(req.category, CATEGORY_PRESETS["Restaurant / Cafe"])
+    cat = req.category or "Restaurant / Cafe"
+    preset = CATEGORY_PRESETS.get(cat, CATEGORY_PRESETS["Restaurant / Cafe"])
     pos_list = [t.strip() for t in preset["pos"].split(',') if t.strip()][:5]
     neg_list = [t.strip() for t in preset["neg"].split(',') if t.strip()][:5]
     pos = ",".join(pos_list)
@@ -405,7 +400,7 @@ async def add_business_inside_dashboard(req: BusinessCreate, auth_token: Optiona
     unique_slug = uuid.uuid4().hex[:12]
     async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         await db.execute("INSERT INTO businesses (owner_id, name, category, google_link, unique_link, status, positive_tags, negative_tags) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)", 
-                      (user["id"], req.name, req.category, req.google_link, unique_slug, pos, neg))
+                      (user["id"], req.name, cat, req.google_link, unique_slug, pos, neg))
         await db.commit()
     return {"message": "Added"}
 
@@ -511,7 +506,6 @@ async def get_business_public(unique_link: str):
     b_dict['positive_tags'] = [t.strip() for t in b_dict['positive_tags'].split(',') if t.strip()]
     b_dict['negative_tags'] = [t.strip() for t in b_dict['negative_tags'].split(',') if t.strip()]
     
-    # Also include all 15 preset options for selection in owner dashboard
     preset = CATEGORY_PRESETS.get(b_dict['category'], CATEGORY_PRESETS["Restaurant / Cafe"])
     b_dict['preset_positive'] = [t.strip() for t in preset['pos'].split(',')]
     b_dict['preset_negative'] = [t.strip() for t in preset['neg'].split(',')]
@@ -570,7 +564,7 @@ async def generate_ai_review(req: dict):
         "Healthcare / Clinic": {
             "en": [f"The care and attention at {b_name} made me feel so secure.", f"Very professional and clean clinic at {b_name}."],
             "hi": [f"{b_name} पर मिलने वाली देखभाल से मुझे बहुत राहत मिली।", f"{b_name} एक बहुत ही पेशेवर और स्वच्छ क्लिनिक है।"],
-            "mr": [f"{b_name} येथील काळजी आणि लक्ष यामुळे मला खूप सुरक्षित वाटले.", f"{b_name} ही अतिशय व्यावसायिक आणि स्वच्छ क्लिनिक आहे."]
+            "mr": [f"{b_name} येथील काळजी आणि लक्ष यामुळे मला खूप सुरक्षित वाटले.", f"{b_name} ही अतिशय व्यावसायिक और स्वच्छ क्लिनिक आहे."]
         },
         "Auto Repair / Garage": {
             "en": [f"Got my vehicle fixed quickly and honestly at {b_name}.", f"Very reliable service and fair pricing at {b_name}."],
@@ -580,7 +574,7 @@ async def generate_ai_review(req: dict):
         "Dental Clinic": {
             "en": [f"My dental procedure at {b_name} was completely painless and smooth.", f"Very gentle dentist and clean environment at {b_name}."],
             "hi": [f"{b_name} पर मेरी दांतों की प्रक्रिया पूरी तरह से दर्दमुक्त और सहज रही।", f"{b_name} में डॉक्टर बहुत सौम्य और वातावरण स्वच्छ है।"],
-            "mr": [f"{b_name} येथील माझी दातांची प्रक्रिया पूर्णपणे वेदनारहित आणि सुलभ झाली.", f"{b_name} मध्ये डॉक्टर अतिशय नम्र और वातावरण स्वच्छ आहे."]
+            "mr": [f"{b_name} येथील माझी दातांची प्रक्रिया पूर्णपणे वेदनारहित आणि सुलभ झाली.", f"{b_name} मध्ये डॉक्टर अतिशय नम्र और वातावरण स्वच्छ है."]
         },
         "Real Estate Agency": {
             "en": [f"Finding a property through {b_name} was completely hassle-free.", f"Professional agents and transparent dealings at {b_name}."],
