@@ -15,14 +15,25 @@
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h2 class="text-lg font-semibold mb-4 text-slate-800">My Businesses</h2>
                 <div id="businesses-list" class="space-y-3 mb-6"></div>
+                
                 <hr class="mb-4">
                 <h3 class="text-sm font-semibold mb-2 text-slate-700">Add Another Location</h3>
-                <p class="text-xs text-slate-500 mb-3">Register multiple businesses under this same email account.</p>
                 <input type="text" id="new-b-name" class="w-full p-2.5 text-sm border rounded-xl mb-2" placeholder="Business Name">
                 <input type="text" id="new-b-link" class="w-full p-2.5 text-sm border rounded-xl mb-3" placeholder="Google Maps URL">
                 <button onclick="addBusiness()" class="w-full bg-slate-900 text-white py-2.5 rounded-xl text-sm font-medium">Register Location</button>
             </div>
+            
+            <div id="tag-manager-card" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hidden">
+                <h2 class="text-lg font-semibold mb-2 text-slate-800">Customize Review Tags</h2>
+                <p class="text-xs text-slate-500 mb-4">Separate tags with commas.</p>
+                <label class="block text-xs font-semibold mb-1 text-slate-700">Positive Tags (Rating >= 3)</label>
+                <textarea id="pos-tags-input" rows="3" class="w-full p-2.5 text-xs border rounded-xl mb-3"></textarea>
+                <label class="block text-xs font-semibold mb-1 text-slate-700">Negative Tags (Rating < 3)</label>
+                <textarea id="neg-tags-input" rows="3" class="w-full p-2.5 text-xs border rounded-xl mb-3"></textarea>
+                <button onclick="saveTags()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save Tags</button>
+            </div>
         </div>
+        
         <div class="lg:col-span-2">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-h-[500px]">
                 <div class="flex justify-between items-center mb-6">
@@ -34,48 +45,80 @@
         </div>
     </div>
     <script>
+        let currentSelectedBusiness = null;
         async function loadBusinesses() {
             const res = await fetch('/api/owner/businesses');
             if(res.status === 401) { window.location.href = "/"; return; }
             const data = await res.json();
             const list = document.getElementById('businesses-list');
+            
             list.innerHTML = data.map(b => `
-                <div onclick="selectBusiness(${b.id}, '${b.name}', '${b.status}', '${b.unique_link}')" class="p-4 border rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all">
+                <div onclick='selectBusiness(${JSON.stringify(b)})' class="p-4 border rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all">
                     <div class="flex justify-between items-center">
                         <p class="font-semibold text-slate-800">${b.name}</p>
                         <span class="text-xs px-2 py-1 rounded ${b.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">${b.status}</span>
                     </div>
                 </div>
             `).join('');
-            if(data.length > 0) selectBusiness(data[0].id, data[0].name, data[0].status, data[0].unique_link);
+            
+            if(data.length > 0) selectBusiness(data[0]);
         }
-        async function selectBusiness(id, name, status, unique_link) {
-            document.getElementById('current-biz-title').textContent = `Reviews for ${name}`;
+        
+        function selectBusiness(b) {
+            currentSelectedBusiness = b;
+            document.getElementById('current-biz-title').textContent = `Reviews for ${b.name}`;
             const linkBtn = document.getElementById('public-link-btn');
-            if(status === 'approved') {
-                linkBtn.href = `/review/${unique_link}`;
+            
+            if(b.status === 'approved') {
+                linkBtn.href = `/review/${b.unique_link}`;
                 linkBtn.classList.remove('hidden');
             } else {
                 linkBtn.classList.add('hidden');
             }
-            const res = await fetch(`/api/owner/reviews/${id}`);
-            const data = await res.json();
-            const list = document.getElementById('reviews-list');
-            if (data.length === 0) {
-                list.innerHTML = '<div class="text-slate-400 text-center py-12 text-sm">No reviews yet.</div>';
-                return;
-            }
-            list.innerHTML = data.map(r => `
-                <div class="p-4 border rounded-xl bg-slate-50 text-left">
-                    <div class="flex justify-between mb-2">
-                        <span class="font-semibold">${r.customer_name}</span>
-                        <span class="text-amber-500">${'★'.repeat(r.rating)}</span>
-                    </div>
-                    <div class="text-xs mb-2">${r.tags}</div>
-                    ${r.rating < 3 ? `<div class="bg-red-50 text-red-800 text-sm p-3 rounded">Private: ${r.feedback_text}</div>` : `<div class="bg-emerald-50 text-emerald-800 text-sm p-3 rounded">AI Draft: ${r.ai_draft}</div>`}
-                </div>
-            `).join('');
+            
+            document.getElementById('tag-manager-card').classList.remove('hidden');
+            document.getElementById('pos-tags-input').value = b.positive_tags || '';
+            document.getElementById('neg-tags-input').value = b.negative_tags || '';
+            
+            fetch(`/api/owner/reviews/${b.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    const list = document.getElementById('reviews-list');
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-slate-400 text-center py-12 text-sm">No reviews yet.</div>';
+                        return;
+                    }
+                    list.innerHTML = data.map(r => `
+                        <div class="p-4 border rounded-xl bg-slate-50 text-left">
+                            <div class="flex justify-between mb-2">
+                                <span class="font-semibold">${r.customer_name}</span>
+                                <span class="text-amber-500">${'★'.repeat(r.rating)}</span>
+                            </div>
+                            <div class="text-xs mb-2 text-slate-500">Tags: ${r.tags}</div>
+                            ${r.rating < 3 ? `<div class="bg-red-50 text-red-800 text-sm p-3 rounded">Private: ${r.feedback_text}</div>` : `<div class="bg-emerald-50 text-emerald-800 text-sm p-3 rounded">AI Draft: ${r.ai_draft}</div>`}
+                        </div>
+                    `).join('');
+                });
         }
+        
+        async function saveTags() {
+            if(!currentSelectedBusiness) return;
+            const positive_tags = document.getElementById('pos-tags-input').value;
+            const negative_tags = document.getElementById('neg-tags-input').value;
+            
+            const res = await fetch('/api/owner/businesses/tags', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({business_id: currentSelectedBusiness.id, positive_tags, negative_tags})
+            });
+            if(res.ok) {
+                alert("Tags updated successfully!");
+                currentSelectedBusiness.positive_tags = positive_tags;
+                currentSelectedBusiness.negative_tags = negative_tags;
+            } else {
+                alert("Error saving tags");
+            }
+        }
+        
         async function addBusiness() {
             const name = document.getElementById('new-b-name').value;
             const link = document.getElementById('new-b-link').value;

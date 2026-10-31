@@ -14,42 +14,34 @@
                 <button onclick="logout()" class="text-sm bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition-all font-medium shadow-sm">Log Out</button>
             </div>
         </div>
-        
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h2 class="text-xl font-semibold mb-4 text-slate-800">All Registered Businesses</h2>
                 <div id="businesses-list" class="space-y-3 h-96 overflow-y-auto pr-2"></div>
             </div>
-
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h2 class="text-xl font-semibold mb-4 text-slate-800">Platform-Wide Reviews</h2>
                 <div id="reviews-list" class="space-y-4 h-96 overflow-y-auto pr-2"></div>
             </div>
         </div>
     </div>
-
     <!-- Change Password Modal -->
     <div id="pwd-modal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
         <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-lg border border-slate-200">
             <h2 class="text-xl font-bold mb-1 text-slate-900">Change Password</h2>
             <p class="text-sm text-slate-500 mb-6">Update your Super Admin credentials securely.</p>
-            
             <label class="block text-xs font-semibold mb-1 text-slate-700">Current Password</label>
             <input type="password" id="old-pwd" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 text-sm">
-            
             <label class="block text-xs font-semibold mb-1 text-slate-700">New Password</label>
             <input type="password" id="new-pwd" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 text-sm">
-            
             <label class="block text-xs font-semibold mb-1 text-slate-700">Confirm New Password</label>
             <input type="password" id="confirm-pwd" class="w-full p-3 border rounded-xl mb-6 focus:ring-2 focus:ring-blue-500 text-sm">
-            
             <div class="flex justify-end space-x-3">
                 <button onclick="closePwdModal()" class="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all">Cancel</button>
                 <button onclick="changePassword()" class="px-5 py-2.5 text-sm font-medium bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm transition-all">Save Password</button>
             </div>
         </div>
     </div>
-
     <script>
         async function loadBusinesses() {
             const res = await fetch('/api/admin/businesses');
@@ -74,7 +66,6 @@
                 </div>
             `).join('');
         }
-
         async function loadReviews() {
             const res = await fetch('/api/admin/reviews');
             const data = await res.json();
@@ -90,34 +81,28 @@
                 </div>
             `).join('');
         }
-
         async function toggleStatus(id, newStatus) {
             await fetch('/api/admin/businesses/toggle', {
                 method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({business_id: id, status: newStatus})
             });
             loadBusinesses();
         }
-
         function closePwdModal() {
             document.getElementById('pwd-modal').classList.add('hidden');
             document.getElementById('old-pwd').value = '';
             document.getElementById('new-pwd').value = '';
             document.getElementById('confirm-pwd').value = '';
         }
-
         async function changePassword() {
             const oldPwd = document.getElementById('old-pwd').value;
             const newPwd = document.getElementById('new-pwd').value;
             const confirmPwd = document.getElementById('confirm-pwd').value;
-            
             if(!oldPwd || !newPwd || !confirmPwd) return alert("Please fill out all fields");
             if(newPwd !== confirmPwd) return alert("The new passwords do not match!");
-            
             const res = await fetch('/api/admin/change-password', {
                 method: 'POST', headers:{'Content-Type':'application/json'},
                 body: JSON.stringify({old_password: oldPwd, new_password: newPwd})
             });
-            
             if(res.ok) {
                 alert("Password successfully updated!");
                 closePwdModal();
@@ -126,12 +111,10 @@
                 alert(data.detail || "Error changing password");
             }
         }
-
         async function logout() {
             await fetch('/api/auth/logout', {method: 'POST'});
             window.location.href = "/";
         }
-
         loadBusinesses();
         loadReviews();
     </script>

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, Response, Cookie
+from fastapi import FastAPI, HTTPException, Request, Response, Cookie, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from pydantic import BaseModel
 import jwt
@@ -39,6 +39,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # -----------------
 async def init_db():
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA busy_timeout = 5000")
+        
         await db.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,6 +59,8 @@ async def init_db():
                 google_link TEXT,
                 unique_link TEXT UNIQUE,
                 status TEXT DEFAULT 'pending',
+                positive_tags TEXT DEFAULT 'Fast Service,Friendly Staff,Clean,Great Ambiance,Value for Money,Quality Products,Professional',
+                negative_tags TEXT DEFAULT 'Slow Service,Rude Staff,Dirty,Overpriced,Poor Quality,Unprofessional',
                 FOREIGN KEY(owner_id) REFERENCES users(id)
             )
         ''')
@@ -96,7 +100,7 @@ def is_valid_email(email: str) -> bool:
     pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
     return bool(re.match(pattern, email))
 
-def send_otp_email(to_email: str, otp_code: str):
+def send_otp_email_sync(to_email: str, otp_code: str):
     if not SMTP_USER or not SMTP_PASS:
         print(f"\n{'='*40}\n[MOCK EMAIL] No SMTP credentials. OTP for {to_email} is: {otp_code}\n{'='*40}\n")
         return
@@ -110,7 +114,7 @@ def send_otp_email(to_email: str, otp_code: str):
         body = f"Hello,\n\nYour 6-digit OTP code is: {otp_code}\n\nPlease enter this code to securely log in or verify your account.\n\nThank you!"
         msg.attach(MIMEText(body, 'plain'))
         
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10)
         server.starttls()
         server.login(SMTP_USER, SMTP_PASS)
         server.send_message(msg)
@@ -139,6 +143,11 @@ class OTPRequest(BaseModel):
 class BusinessCreate(BaseModel):
     name: str
     google_link: str
+
+class TagUpdate(BaseModel):
+    business_id: int
+    positive_tags: str
+    negative_tags: str
 
 class ReviewSubmit(BaseModel):
     business_link: str
@@ -204,13 +213,13 @@ async def serve_customer_review_ui(unique_link: str):
 # 4. REGISTRATION & LOGIN
 # -----------------
 @app.post("/api/auth/register-otp")
-async def register_request_otp(req: RegisterOTPReq):
+async def register_request_otp(req: RegisterOTPReq, background_tasks: BackgroundTasks):
     if not is_valid_email(req.email): raise HTTPException(status_code=400, detail="Invalid email format")
     if req.email == ADMIN_EMAIL: raise HTTPException(status_code=400, detail="Cannot register as admin")
     
     otp_code = str(random.randint(100000, 999999))
     
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         async with db.execute("SELECT id FROM users WHERE email = ?", (req.email,)) as cursor:
             if not await cursor.fetchone():
                 await db.execute("INSERT INTO users (email, role, otp_code) VALUES (?, 'owner', ?)", (req.email, otp_code))
@@ -218,12 +227,12 @@ async def register_request_otp(req: RegisterOTPReq):
                 await db.execute("UPDATE users SET otp_code = ? WHERE email = ?", (otp_code, req.email))
         await db.commit()
     
-    send_otp_email(req.email, otp_code)
+    background_tasks.add_task(send_otp_email_sync, req.email, otp_code)
     return {"message": "OTP sent."}
 
 @app.post("/api/auth/register-verify")
 async def register_verify(req: RegisterVerifyReq):
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         async with db.execute("SELECT id, otp_code FROM users WHERE email = ?", (req.email,)) as cursor:
             user = await cursor.fetchone()
             
@@ -240,11 +249,11 @@ async def register_verify(req: RegisterVerifyReq):
     return {"message": "Registration successful!"}
 
 @app.post("/api/auth/request-otp")
-async def request_otp(req: OTPRequest):
+async def request_otp(req: OTPRequest, background_tasks: BackgroundTasks):
     if not is_valid_email(req.email): raise HTTPException(status_code=400, detail="Invalid email format")
     if req.email == ADMIN_EMAIL: raise HTTPException(status_code=400, detail="Admin uses password, not OTP.")
     
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         async with db.execute("SELECT id FROM users WHERE email = ?", (req.email,)) as cursor:
             if not await cursor.fetchone():
                 raise HTTPException(status_code=404, detail="Email not found. Please register first.")
@@ -253,14 +262,14 @@ async def request_otp(req: OTPRequest):
         await db.execute("UPDATE users SET otp_code = ? WHERE email = ?", (otp_code, req.email))
         await db.commit()
         
-    send_otp_email(req.email, otp_code)
+    background_tasks.add_task(send_otp_email_sync, req.email, otp_code)
     return {"message": "OTP sent."}
 
 @app.post("/api/auth/login")
 async def login(req: LoginRequest, response: Response):
     if not is_valid_email(req.email): raise HTTPException(status_code=400, detail="Invalid email format")
     
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         async with db.execute("SELECT id, role, password, otp_code FROM users WHERE email = ?", (req.email,)) as cursor:
             user = await cursor.fetchone()
             
@@ -296,7 +305,7 @@ async def get_my_businesses(auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
     if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
     
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM businesses WHERE owner_id = ?", (user["id"],)) as cursor:
             rows = await cursor.fetchall()
@@ -308,18 +317,33 @@ async def add_business_inside_dashboard(req: BusinessCreate, auth_token: Optiona
     if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
     
     unique_slug = uuid.uuid4().hex[:12]
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         await db.execute("INSERT INTO businesses (owner_id, name, google_link, unique_link, status) VALUES (?, ?, ?, ?, 'pending')", 
                       (user["id"], req.name, req.google_link, unique_slug))
         await db.commit()
     return {"message": "Added"}
+
+@app.post("/api/owner/businesses/tags")
+async def update_business_tags(req: TagUpdate, auth_token: Optional[str] = Cookie(None)):
+    user = get_current_user(auth_token)
+    if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+        async with db.execute("SELECT id FROM businesses WHERE id = ? AND owner_id = ?", (req.business_id, user["id"])) as cursor:
+            if not await cursor.fetchone():
+                raise HTTPException(status_code=403, detail="Forbidden")
+                
+        await db.execute("UPDATE businesses SET positive_tags = ?, negative_tags = ? WHERE id = ?", 
+                         (req.positive_tags, req.negative_tags, req.business_id))
+        await db.commit()
+    return {"message": "Tags updated successfully"}
 
 @app.get("/api/owner/reviews/{business_id}")
 async def get_reviews_for_business(business_id: int, auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
     if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
     
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT id FROM businesses WHERE id = ? AND owner_id = ?", (business_id, user["id"])) as cursor:
             if not await cursor.fetchone():
@@ -337,7 +361,7 @@ async def change_admin_password(req: AdminChangePassword, auth_token: Optional[s
     user = get_current_user(auth_token)
     if not user or user["role"] != "admin": raise HTTPException(status_code=401, detail="Unauthorized")
     
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         async with db.execute("SELECT password FROM users WHERE id = ?", (user["id"],)) as cursor:
             row = await cursor.fetchone()
             if not row: raise HTTPException(status_code=404, detail="Admin not found")
@@ -355,7 +379,7 @@ async def get_all_businesses(auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
     if not user or user["role"] != "admin": raise HTTPException(status_code=401, detail="Unauthorized")
     
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute('''
             SELECT b.*, u.email as owner_email 
@@ -370,7 +394,7 @@ async def toggle_business(req: BusinessToggle, auth_token: Optional[str] = Cooki
     user = get_current_user(auth_token)
     if not user or user["role"] != "admin": raise HTTPException(status_code=401, detail="Unauthorized")
     
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         await db.execute("UPDATE businesses SET status = ? WHERE id = ?", (req.status, req.business_id))
         await db.commit()
     return {"message": f"Business {req.status}"}
@@ -380,7 +404,7 @@ async def get_all_reviews(auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
     if not user or user["role"] != "admin": raise HTTPException(status_code=401, detail="Unauthorized")
     
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute('''
             SELECT r.*, b.name as business_name 
@@ -396,9 +420,9 @@ async def get_all_reviews(auth_token: Optional[str] = Cookie(None)):
 # -----------------
 @app.get("/api/business/public/{unique_link}")
 async def get_business_public(unique_link: str):
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT id, name, google_link, status, unique_link FROM businesses WHERE unique_link = ?", (unique_link,)) as cursor:
+        async with db.execute("SELECT id, name, google_link, status, unique_link, positive_tags, negative_tags FROM businesses WHERE unique_link = ?", (unique_link,)) as cursor:
             row = await cursor.fetchone()
             
     if not row: raise HTTPException(status_code=404, detail="Not found")
@@ -407,7 +431,7 @@ async def get_business_public(unique_link: str):
 
 @app.post("/api/reviews/submit")
 async def submit_review(req: ReviewSubmit):
-    async with aiosqlite.connect(DB_NAME) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         async with db.execute("SELECT id FROM businesses WHERE unique_link = ?", (req.business_link,)) as cursor:
             row = await cursor.fetchone()
             
@@ -429,41 +453,89 @@ async def generate_ai_review(req: dict):
     b_name = req.get('business_name', 'this establishment')
     name = req.get('customer_name', 'A happy customer')
     tags = req.get('tags', [])
+    lang = req.get('lang', 'en')
     
-    intros = [
-        f"I recently visited {b_name} and it was a wonderful experience.",
-        f"Five stars for {b_name}!",
-        f"Can't say enough good things about {b_name}.",
-        f"My new favorite spot is definitely {b_name}.",
-        f"Had a really solid experience at {b_name} today.",
-        f"Just left {b_name} and I am so impressed."
-    ]
-    
-    middles = []
-    if tags:
-        tag_str = " and ".join([", ".join(tags[:-1]), tags[-1]] if len(tags) > 1 else tags)
-        middles = [
-            f"They completely nailed the {tag_str}.",
-            f"I was really blown away by the {tag_str}.",
-            f"If you're looking for great {tag_str}, this is the place to go.",
-            f"The {tag_str} made the whole visit totally worth it.",
-            f"Special shoutout to the team for the excellent {tag_str}!"
+    if lang == 'hi':
+        intros = [
+            f"मैंने हाल ही में {b_name} का दौरा किया और यह एक शानदार अनुभव था।",
+            f"{b_name} के लिए पाँच सितारे!",
+            f"मैं {b_name} के बारे में पर्याप्त अच्छी बातें नहीं कह सकता।"
+        ]
+        middles = []
+        if tags:
+            tag_str = ", ".join(tags)
+            middles = [
+                f"उन्होंने वास्तव में {tag_str} को बेहतरीन तरीके से निभाया।",
+                f"मैं {tag_str} से पूरी तरह प्रभावित था।"
+            ]
+        outros = [
+            f"अत्यधिक अनुशंसित! - {name}",
+            f"निश्चित रूप से जल्द ही वापस आऊंगा। - {name}",
+            f"10/10 दोबारा आना चाहूंगा। - {name}"
+        ]
+        review = random.choice(intros)
+        if middles: review += " " + random.choice(middles)
+        review += " " + random.choice(outros)
+        return {"review": review}
+
+    elif lang == 'mr':
+        intros = [
+            f"मी अलीकडेच {b_name} ला भेट दिली आणि हा एक अद्भुत अनुभव होता.",
+            f"{b_name} साठी पाच तारे!",
+            f"मी {b_name} बद्दल कितीही सांगू तितके कमी आहे."
+        ]
+        middles = []
+        if tags:
+            tag_str = ", ".join(tags)
+            middles = [
+                f"त्यांनी खरोखरच {b_name} मध्ये {tag_str} उत्तम प्रकारे हाताळले.",
+                f"मला {tag_str} खूप आवडले."
+            ]
+        outros = [
+            f"अत्यंत शिफारस केलेले! - {name}",
+            f"नक्कीच लवकरच परत येईल. - {name}",
+            f"पुन्हा नक्की भेट देईन. - {name}"
+        ]
+        review = random.choice(intros)
+        if middles: review += " " + random.choice(middles)
+        review += " " + random.choice(outros)
+        return {"review": review}
+
+    else:
+        intros = [
+            f"I recently visited {b_name} and it was a wonderful experience.",
+            f"Five stars for {b_name}!",
+            f"Can't say enough good things about {b_name}.",
+            f"My new favorite spot is definitely {b_name}.",
+            f"Had a really solid experience at {b_name} today.",
+            f"Just left {b_name} and I am so impressed."
         ]
         
-    outros = [
-        f"Highly recommended! - {name}",
-        f"Will definitely be coming back soon. - {name}",
-        f"Check it out if you're in the area! - {name}",
-        f"Thanks to the team for a great time. - {name}",
-        f"10/10 would visit again. - {name}"
-    ]
-    
-    review = random.choice(intros)
-    if middles:
-        review += " " + random.choice(middles)
-    review += " " + random.choice(outros)
-    
-    return {"review": review}
+        middles = []
+        if tags:
+            tag_str = " and ".join([", ".join(tags[:-1]), tags[-1]] if len(tags) > 1 else tags)
+            middles = [
+                f"They completely nailed the {tag_str}.",
+                f"I was really blown away by the {tag_str}.",
+                f"If you're looking for great {tag_str}, this is the place to go.",
+                f"The {tag_str} made the whole visit totally worth it.",
+                f"Special shoutout to the team for the excellent {tag_str}!"
+            ]
+            
+        outros = [
+            f"Highly recommended! - {name}",
+            f"Will definitely be coming back soon. - {name}",
+            f"Check it out if you're in the area! - {name}",
+            f"Thanks to the team for a great time. - {name}",
+            f"10/10 would visit again. - {name}"
+        ]
+        
+        review = random.choice(intros)
+        if middles:
+            review += " " + random.choice(middles)
+        review += " " + random.choice(outros)
+        
+        return {"review": review}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)

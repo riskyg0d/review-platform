@@ -4,5 +4,5 @@ pydantic
 PyJWT
 aiosqlite
 passlib
-bcrypt
+bcrypt==4.0.1
 python-dotenv

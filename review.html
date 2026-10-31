@@ -7,14 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
-    <header class="w-full bg-white border-b py-4 px-6 text-center shadow-xs">
+    <header class="w-full bg-white border-b py-4 px-6 flex justify-between items-center shadow-xs">
         <h1 id="business-name" class="text-lg font-bold">Loading...</h1>
+        <select id="lang-selector" onchange="changeLanguage()" class="text-xs border rounded-lg p-1.5 bg-slate-50 font-medium">
+            <option value="en">English</option>
+            <option value="hi">हिंदी (Hindi)</option>
+            <option value="mr">मराठी (Marathi)</option>
+        </select>
     </header>
     <main class="max-w-md w-full mx-auto p-4 sm:p-6 my-auto" id="main-content">
         <div id="step-rating" class="bg-white rounded-2xl shadow-sm border p-6">
-            <h2 class="text-xl font-semibold text-center mb-6">How was your experience?</h2>
+            <h2 id="ui-title" class="text-xl font-semibold text-center mb-6">How was your experience?</h2>
             <div class="mb-5">
-                <label class="block text-xs font-semibold mb-1">Your Name</label>
+                <label id="ui-name-label" class="block text-xs font-semibold mb-1">Your Name</label>
                 <input type="text" id="customer-name" class="w-full px-4 py-2 border rounded-xl" placeholder="Alex Smith">
             </div>
             <div class="flex justify-center space-x-2 mb-6" id="star-container">
@@ -25,13 +30,13 @@
                 <button data-value="5" class="star-btn text-3xl text-slate-300">★</button>
             </div>
             <div class="mb-6">
-                <label class="block text-xs font-semibold mb-2">What went well? (Select tags)</label>
+                <label id="ui-tags-label" class="block text-xs font-semibold mb-2">What went well? (Select tags)</label>
                 <div id="tags-container" class="flex flex-wrap gap-2"></div>
             </div>
             <button id="proceed-btn" disabled class="w-full bg-blue-600 text-white py-3 rounded-xl disabled:bg-slate-200">Continue</button>
         </div>
         <div id="step-ai-review" class="hidden bg-white rounded-2xl shadow-sm border p-6">
-            <h2 class="text-lg font-semibold text-center mb-4">Review Ready for Google</h2>
+            <h2 id="ui-ready-title" class="text-lg font-semibold text-center mb-4">Review Ready for Google</h2>
             <div id="ai-loading" class="text-center py-4">Generating...</div>
             <div id="ai-content" class="hidden">
                 <textarea id="review-text-output" rows="4" class="w-full p-3 border rounded-xl mb-4"></textarea>
@@ -39,7 +44,7 @@
             </div>
         </div>
         <div id="step-feedback" class="hidden bg-white rounded-2xl shadow-sm border p-6">
-            <h2 class="text-lg font-semibold text-center mb-4">Private Feedback</h2>
+            <h2 id="ui-private-title" class="text-lg font-semibold text-center mb-4">Private Feedback</h2>
             <textarea id="private-feedback-text" rows="4" class="w-full p-3 border rounded-xl mb-4" placeholder="What went wrong?"></textarea>
             <button id="submit-feedback-btn" class="w-full bg-slate-900 text-white py-3 rounded-xl">Send to Management</button>
         </div>
@@ -57,6 +62,54 @@
         let businessData = {};
         let currentRating = 0;
         let selectedTags = [];
+        let currentLang = 'en';
+
+        const i18n = {
+            en: {
+                title: "How was your experience?",
+                nameLabel: "Your Name",
+                tagsLabel: "What went well? (Select tags)",
+                continueBtn: "Continue",
+                readyTitle: "Review Ready for Google",
+                postGoogle: "Post on Google Review",
+                privateTitle: "Private Feedback",
+                sendMgmt: "Send to Management"
+            },
+            hi: {
+                title: "आपका अनुभव कैसा रहा?",
+                nameLabel: "आपका नाम",
+                tagsLabel: "क्या अच्छा रहा? (टैग चुनें)",
+                continueBtn: "आगे बढ़ें",
+                readyTitle: "गूगल के लिए समीक्षा तैयार है",
+                postGoogle: "गूगल समीक्षा पर पोस्ट करें",
+                privateTitle: "निजी प्रतिक्रिया",
+                sendMgmt: "मैनेजमेंट को भेजें"
+            },
+            mr: {
+                title: "तुमचा अनुभव कसा होता?",
+                nameLabel: "तुमचे नाव",
+                tagsLabel: "काय चांगले झाले? (टॅग निवडा)",
+                continueBtn: "पुढе जा",
+                readyTitle: "गुगल रिव्ह्यू तयार आहे",
+                postGoogle: "गुगल रिव्ह्यू वर पोस्ट करा",
+                privateTitle: "खाजगी अभिप्राय",
+                sendMgmt: "व्यवस्थापनाकडे पाठवा"
+            }
+        };
+
+        function changeLanguage() {
+            currentLang = document.getElementById('lang-selector').value;
+            const t = i18n[currentLang];
+            document.getElementById('ui-title').textContent = t.title;
+            document.getElementById('ui-name-label').textContent = t.nameLabel;
+            document.getElementById('ui-tags-label').textContent = t.tagsLabel;
+            document.getElementById('proceed-btn').textContent = t.continueBtn;
+            document.getElementById('ui-ready-title').textContent = t.readyTitle;
+            document.getElementById('post-google-btn').textContent = t.postGoogle;
+            document.getElementById('ui-private-title').textContent = t.privateTitle;
+            document.getElementById('submit-feedback-btn').textContent = t.sendMgmt;
+        }
+
         fetch(`/api/business/public/${uniqueLink}`)
             .then(res => {
                 if(!res.ok) throw new Error(res.status);
@@ -75,20 +128,21 @@
                     </div>
                 `;
             });
-        const tagsList = {
-            pos: ["Fast Service", "Friendly Staff", "Clean", "Great Ambiance", "Value"],
-            neg: ["Slow Service", "Rude Staff", "Dirty", "Overpriced"]
-        };
+
         const starBtns = document.querySelectorAll('.star-btn');
         starBtns.forEach((btn, idx) => {
             btn.addEventListener('click', () => {
                 currentRating = idx + 1;
                 starBtns.forEach((b, i) => b.classList.toggle('text-amber-400', i < currentRating));
                 starBtns.forEach((b, i) => b.classList.toggle('text-slate-300', i >= currentRating));
+                
                 const tagsContainer = document.getElementById('tags-container');
                 tagsContainer.innerHTML = '';
                 selectedTags = [];
-                const tagsToUse = currentRating >= 3 ? tagsList.pos : tagsList.neg;
+                
+                let rawTags = currentRating >= 3 ? businessData.positive_tags : businessData.negative_tags;
+                let tagsToUse = rawTags ? rawTags.split(',').map(t => t.trim()).filter(Boolean) : [];
+
                 tagsToUse.forEach(tag => {
                     const btn = document.createElement('button');
                     btn.textContent = tag;
@@ -104,13 +158,20 @@
                 document.getElementById('proceed-btn').disabled = false;
             });
         });
+
         document.getElementById('proceed-btn').addEventListener('click', () => {
             document.getElementById('step-rating').classList.add('hidden');
             if (currentRating >= 3) {
                 document.getElementById('step-ai-review').classList.remove('hidden');
                 fetch('/api/ai/generate-review', {
                     method: 'POST', headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({rating: currentRating, tags: selectedTags, business_name: businessData.name, customer_name: document.getElementById('customer-name').value})
+                    body: JSON.stringify({
+                        rating: currentRating, 
+                        tags: selectedTags, 
+                        business_name: businessData.name, 
+                        customer_name: document.getElementById('customer-name').value,
+                        lang: currentLang
+                    })
                 }).then(res=>res.json()).then(data => {
                     document.getElementById('ai-loading').classList.add('hidden');
                     document.getElementById('ai-content').classList.remove('hidden');
@@ -120,6 +181,7 @@
                 document.getElementById('step-feedback').classList.remove('hidden');
             }
         });
+
         async function saveReview(feedbackText = "", aiDraft = "") {
             await fetch('/api/reviews/submit', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
@@ -130,6 +192,7 @@
                 })
             });
         }
+
         document.getElementById('post-google-btn').addEventListener('click', async () => {
             const aiText = document.getElementById('review-text-output').value;
             await saveReview("", aiText);
@@ -137,6 +200,7 @@
                 window.location.href = businessData.google_link;
             });
         });
+
         document.getElementById('submit-feedback-btn').addEventListener('click', async () => {
             await saveReview(document.getElementById('private-feedback-text').value, "");
             document.getElementById('step-feedback').classList.add('hidden');
