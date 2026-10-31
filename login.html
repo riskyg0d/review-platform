@@ -10,10 +10,10 @@
         <h1 class="text-2xl font-bold mb-2 text-center text-slate-900">Sign In</h1>
         <p class="text-slate-500 text-sm text-center mb-6">Access your platform workspace.</p>
         
-        <div id="step-email">
-            <label class="block text-sm font-semibold mb-1 text-slate-700">Email Address</label>
-            <input type="email" id="email" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500" placeholder="owner@cafe.com">
-            <button onclick="checkEmail()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-medium hover:bg-slate-800 transition-all">Continue</button>
+        <div id="step-identifier">
+            <label class="block text-sm font-semibold mb-1 text-slate-700">Email Address or Phone Number</label>
+            <input type="text" id="identifier" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500" placeholder="you@business.com or +919876543210">
+            <button onclick="checkIdentifier()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-medium hover:bg-slate-800 transition-all">Continue</button>
         </div>
         <div id="step-password" class="hidden">
             <label class="block text-sm font-semibold mb-1 text-slate-700">Admin Password</label>
@@ -22,7 +22,7 @@
         </div>
         <div id="step-auth-choice" class="hidden text-center space-y-4">
             <p class="text-sm text-slate-600 mb-2">Choose how you want to sign in:</p>
-            <button onclick="requestOTP()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-medium hover:bg-slate-800 transition-all">Send OTP via Email</button>
+            <button onclick="requestOTP()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-medium hover:bg-slate-800 transition-all">Send Verification Code</button>
             <div id="pin-section" class="hidden pt-2 border-t">
                 <label class="block text-sm font-semibold mb-1 text-slate-700 text-left">Or Enter Your 4-Digit PIN</label>
                 <div class="flex space-x-2">
@@ -32,8 +32,8 @@
             </div>
         </div>
         <div id="step-otp" class="hidden">
-            <p class="text-xs text-blue-600 bg-blue-50 p-2 rounded mb-4 text-center">OTP sent to your email!</p>
-            <label class="block text-sm font-semibold mb-1 text-slate-700">Enter 6-Digit OTP</label>
+            <p class="text-xs text-blue-600 bg-blue-50 p-2 rounded mb-4 text-center">Verification code sent! (Check console logs)</p>
+            <label class="block text-sm font-semibold mb-1 text-slate-700">Enter 6-Digit Code</label>
             <input type="text" id="otp-code" class="w-full p-3 border rounded-xl mb-4 focus:ring-2 focus:ring-blue-500 tracking-widest text-center text-lg" placeholder="123456">
             <button onclick="loginOwnerOTP()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all">Verify & Login</button>
         </div>
@@ -43,19 +43,21 @@
         </div>
     </div>
     <script>
-        let globalEmail = "";
-        function isValidEmail(email) {
-            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        }
-        async function checkEmail() {
-            const email = document.getElementById('email').value.trim();
-            if(!email) return alert("Enter email");
-            if(!isValidEmail(email)) return alert("Please enter a valid email address format");
-            globalEmail = email;
+        let globalIdentifier = "";
+        function isValidEmail(val) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val); }
+        function isValidPhone(val) { return /^\+?[0-9]{10,15}$/.test(val); }
+
+        async function checkIdentifier() {
+            const identifier = document.getElementById('identifier').value.trim();
+            if(!identifier) return alert("Enter email or phone number");
+            if(!isValidEmail(identifier) && !isValidPhone(identifier) && identifier !== "qureshidawood1505@gmail.com") {
+                return alert("Please enter a valid email address or phone number format");
+            }
+            globalIdentifier = identifier;
             
-            document.getElementById('step-email').classList.add('hidden');
+            document.getElementById('step-identifier').classList.add('hidden');
             
-            if (email === "qureshidawood1505@gmail.com") {
+            if (identifier === "qureshidawood1505@gmail.com") {
                 document.getElementById('step-password').classList.remove('hidden');
             } else {
                 document.getElementById('step-auth-choice').classList.remove('hidden');
@@ -65,29 +67,30 @@
         async function requestOTP() {
             const res = await fetch('/api/auth/request-otp', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({email: globalEmail})
+                body: JSON.stringify({identifier: globalIdentifier})
             });
             if(res.ok) {
                 document.getElementById('step-auth-choice').classList.add('hidden');
                 document.getElementById('step-otp').classList.remove('hidden');
             } else {
                 const data = await res.json();
-                alert(data.detail);
+                alert(data.detail || "Error sending code");
                 window.location.reload();
             }
         }
         async function loginWithPin() {
             const pin = document.getElementById('login-pin').value.trim();
-            if(!pin) return alert("Enter your PIN");
-            executeLogin({email: globalEmail, pin: pin});
+            if(!pin || pin.length !== 4) return alert("Enter your 4-digit PIN");
+            executeLogin({identifier: globalIdentifier, pin: pin});
         }
         async function loginAdmin() {
             const password = document.getElementById('password').value.trim();
-            executeLogin({email: globalEmail, password});
+            executeLogin({identifier: globalIdentifier, password});
         }
         async function loginOwnerOTP() {
             const otp = document.getElementById('otp-code').value.trim();
-            executeLogin({email: globalEmail, otp});
+            if(!otp) return alert("Enter the 6-digit code");
+            executeLogin({identifier: globalIdentifier, otp});
         }
         async function executeLogin(payload) {
             const res = await fetch('/api/auth/login', {
@@ -98,7 +101,8 @@
                 const data = await res.json();
                 window.location.href = data.role === 'admin' ? '/admin' : '/dashboard';
             } else {
-                alert("Invalid credentials or PIN.");
+                const data = await res.json().catch(() => ({}));
+                alert(data.detail || "Invalid credentials or verification code.");
             }
         }
     </script>
