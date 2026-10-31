@@ -287,15 +287,18 @@ async def register_verify(req: RegisterVerifyReq):
             owner_id = user[0]
             unique_slug = uuid.uuid4().hex[:12]
             
-            preset = CATEGORY_PRESETS.get(req.category, CATEGORY_PRESETS["Restaurant / Cafe"])
+            # Fetch category preset and default to first 5 tags
+            preset = CATEGORY_PRESETS.get(req.category or "Restaurant / Cafe", CATEGORY_PRESETS["Restaurant / Cafe"])
             pos_list = [t.strip() for t in preset["pos"].split(',') if t.strip()][:5]
             neg_list = [t.strip() for t in preset["neg"].split(',') if t.strip()][:5]
             pos = ",".join(pos_list)
             neg = ",".join(neg_list)
 
             await db.execute(f"UPDATE users SET otp_code = NULL, pin_code = ? WHERE id = ?", (req.pin or None, owner_id))
-            await db.execute("INSERT INTO businesses (owner_id, name, category, google_link, unique_link, status, positive_tags, negative_tags) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)", 
-                          (owner_id, req.business_name, req.category, req.google_link, unique_slug, pos, neg))
+            await db.execute(
+                "INSERT INTO businesses (owner_id, name, category, google_link, unique_link, status, positive_tags, negative_tags) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)", 
+                (owner_id, req.business_name, req.category or "Restaurant / Cafe", req.google_link, unique_slug, pos, neg)
+            )
         await db.commit()
     return {"message": "Registration successful!"}
 
@@ -355,7 +358,13 @@ async def set_pin(req: SetPinRequest, auth_token: Optional[str] = Cookie(None)):
 
 @app.post("/api/auth/logout")
 async def logout(response: Response):
-    response.delete_cookie(key="auth_token")
+    response.delete_cookie(
+        key="auth_token", 
+        path="/", 
+        samesite="lax", 
+        secure=True, 
+        httponly=True
+    )
     return {"message": "Logged out"}
 
 @app.get("/api/owner/businesses")
