@@ -39,13 +39,13 @@
             </div>
             
             <div id="tag-manager-card" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hidden">
-                <h2 class="text-lg font-semibold mb-2 text-slate-800">Customize Review Tags</h2>
-                <p class="text-xs text-slate-500 mb-4">Separate tags with commas.</p>
+                <h2 class="text-lg font-semibold mb-2 text-slate-800">Select Active Review Tags</h2>
+                <p class="text-xs text-slate-500 mb-3">Check the tags you want to offer to your customers.</p>
                 <label class="block text-xs font-semibold mb-1 text-slate-700">Positive Tags (Rating >= 3)</label>
-                <textarea id="pos-tags-input" rows="3" class="w-full p-2.5 text-xs border rounded-xl mb-3"></textarea>
+                <div id="pos-checkboxes" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto mb-3 p-2 border rounded-xl bg-slate-50"></div>
                 <label class="block text-xs font-semibold mb-1 text-slate-700">Negative Tags (Rating < 3)</label>
-                <textarea id="neg-tags-input" rows="3" class="w-full p-2.5 text-xs border rounded-xl mb-3"></textarea>
-                <button onclick="saveTags()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save Tags</button>
+                <div id="neg-checkboxes" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto mb-3 p-2 border rounded-xl bg-slate-50"></div>
+                <button onclick="saveTags()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save Selected Tags</button>
             </div>
         </div>
         
@@ -107,8 +107,25 @@
             }
             
             document.getElementById('tag-manager-card').classList.remove('hidden');
-            document.getElementById('pos-tags-input').value = b.positive_tags || '';
-            document.getElementById('neg-tags-input').value = b.negative_tags || '';
+            
+            // Render checkboxes for preset positive and negative tags (allowing selection via click instead of manual typing!)
+            const posContainer = document.getElementById('pos-checkboxes');
+            const negContainer = document.getElementById('neg-checkboxes');
+            
+            const activePos = b.positive_tags || [];
+            const activeNeg = b.negative_tags || [];
+            
+            posContainer.innerHTML = (b.preset_positive || []).map(t => `
+                <label class="inline-flex items-center text-xs bg-white border px-2 py-1 rounded-lg cursor-pointer hover:bg-blue-50">
+                    <input type="checkbox" value="${t}" ${activePos.includes(t) ? 'checked' : ''} class="pos-chk rounded text-blue-600 mr-1.5"> ${t}
+                </label>
+            `).join('');
+            
+            negContainer.innerHTML = (b.preset_negative || []).map(t => `
+                <label class="inline-flex items-center text-xs bg-white border px-2 py-1 rounded-lg cursor-pointer hover:bg-red-50">
+                    <input type="checkbox" value="${t}" ${activeNeg.includes(t) ? 'checked' : ''} class="neg-chk rounded text-red-600 mr-1.5"> ${t}
+                </label>
+            `).join('');
             
             fetch(`/api/owner/reviews/${b.id}`)
                 .then(res => res.json())
@@ -133,8 +150,8 @@
         
         async function saveTags() {
             if(!currentSelectedBusiness) return;
-            const positive_tags = document.getElementById('pos-tags-input').value;
-            const negative_tags = document.getElementById('neg-tags-input').value;
+            const positive_tags = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
+            const negative_tags = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
             
             const res = await fetch('/api/owner/businesses/tags', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},

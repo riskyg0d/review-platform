@@ -31,7 +31,7 @@ ADMIN_EMAIL = "qureshidawood1505@gmail.com"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# 10 Detailed Categories with 15 Positive and 15 Negative tags each (English)
+# 10 Detailed Categories with exactly 15 Positive and 15 Negative tags each (English)
 CATEGORY_PRESETS = {
     "Restaurant / Cafe": {
         "pos": "Great Food,Fast Service,Clean,Friendly Staff,Good Ambiance,Value for Money,Fresh Ingredients,Tasty,Cozy Vibe,Great Portions,Authentic Taste,Hygienic,Prompt Delivery,Well Prepared,Scenic View",
@@ -192,8 +192,8 @@ class BusinessCreate(BaseModel):
 
 class TagUpdate(BaseModel):
     business_id: int
-    positive_tags: str
-    negative_tags: str
+    positive_tags: List[str]
+    negative_tags: List[str]
 
 class ReviewSubmit(BaseModel):
     business_link: str
@@ -365,7 +365,20 @@ async def get_my_businesses(auth_token: Optional[str] = Cookie(None)):
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM businesses WHERE owner_id = ?", (user["id"],)) as cursor:
             rows = await cursor.fetchall()
-    return [dict(row) for row in rows]
+            
+        result = []
+        for row in rows:
+            b_dict = dict(row)
+            # Ensure positive_tags and negative_tags are returned as lists for checkboxes/selection
+            b_dict['positive_tags'] = [t.strip() for t in b_dict['positive_tags'].split(',') if t.strip()]
+            b_dict['negative_tags'] = [t.strip() for t in b_dict['negative_tags'].split(',') if t.strip()]
+            
+            # Also fetch all 15 preset options for this category so the owner can select from them
+            preset = CATEGORY_PRESETS.get(b_dict['category'], CATEGORY_PRESETS["Restaurant / Cafe"])
+            b_dict['preset_positive'] = [t.strip() for t in preset['pos'].split(',')]
+            b_dict['preset_negative'] = [t.strip() for t in preset['neg'].split(',')]
+            result.append(b_dict)
+    return result
 
 @app.post("/api/owner/businesses")
 async def add_business_inside_dashboard(req: BusinessCreate, auth_token: Optional[str] = Cookie(None)):
@@ -388,13 +401,16 @@ async def update_business_tags(req: TagUpdate, auth_token: Optional[str] = Cooki
     user = get_current_user(auth_token)
     if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
     
+    pos_joined = ",".join(req.positive_tags)
+    neg_joined = ",".join(req.negative_tags)
+    
     async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         async with db.execute("SELECT id FROM businesses WHERE id = ? AND owner_id = ?", (req.business_id, user["id"])) as cursor:
             if not await cursor.fetchone():
                 raise HTTPException(status_code=403, detail="Forbidden")
                 
         await db.execute("UPDATE businesses SET positive_tags = ?, negative_tags = ? WHERE id = ?", 
-                         (req.positive_tags, req.negative_tags, req.business_id))
+                         (pos_joined, neg_joined, req.business_id))
         await db.commit()
     return {"message": "Tags updated successfully"}
 
@@ -477,7 +493,17 @@ async def get_business_public(unique_link: str):
             row = await cursor.fetchone()
     if not row: raise HTTPException(status_code=404, detail="Not found")
     if row['status'] != 'approved': raise HTTPException(status_code=403, detail="Disabled or Pending")
-    return dict(row)
+    
+    b_dict = dict(row)
+    b_dict['positive_tags'] = [t.strip() for t in b_dict['positive_tags'].split(',') if t.strip()]
+    b_dict['negative_tags'] = [t.strip() for t in b_dict['negative_tags'].split(',') if t.strip()]
+    
+    # Also include all 15 preset options for selection in owner dashboard
+    preset = CATEGORY_PRESETS.get(b_dict['category'], CATEGORY_PRESETS["Restaurant / Cafe"])
+    b_dict['preset_positive'] = [t.strip() for t in preset['pos'].split(',')]
+    b_dict['preset_negative'] = [t.strip() for t in preset['neg'].split(',')]
+    
+    return b_dict
 
 @app.post("/api/reviews/submit")
 async def submit_review(req: ReviewSubmit):
@@ -502,7 +528,6 @@ async def generate_ai_review(req: dict):
     tags = req.get('tags', [])
     lang = req.get('lang', 'en')
     
-    # Category-tailored contextual review strings
     cat_intros = {
         "Restaurant / Cafe": {
             "en": [f"I recently visited {b_name} and the food and ambiance were incredible.", f"Had a wonderful dining experience at {b_name} today."],
@@ -542,7 +567,7 @@ async def generate_ai_review(req: dict):
         "Dental Clinic": {
             "en": [f"My dental procedure at {b_name} was completely painless and smooth.", f"Very gentle dentist and clean environment at {b_name}."],
             "hi": [f"{b_name} पर मेरी दांतों की प्रक्रिया पूरी तरह से दर्दमुक्त और सहज रही।", f"{b_name} में डॉक्टर बहुत सौम्य और वातावरण स्वच्छ है।"],
-            "mr": [f"{b_name} येथील माझी दातांची प्रक्रिया पूर्णपणे वेदनारहित आणि सुलभ झाली.", f"{b_name} मध्ये डॉक्टर अतिशय नम्र आणि वातावरण स्वच्छ आहे."]
+            "mr": [f"{b_name} येथील माझी दातांची प्रक्रिया पूर्णपणे वेदनारहित आणि सुलभ झाली.", f"{b_name} मध्ये डॉक्टर अतिशय नम्र और वातावरण स्वच्छ आहे."]
         },
         "Real Estate Agency": {
             "en": [f"Finding a property through {b_name} was completely hassle-free.", f"Professional agents and transparent dealings at {b_name}."],
