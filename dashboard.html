@@ -148,8 +148,7 @@
                 });
         }
         
-        async 
-        function limitCheck(checkbox, className, maxLimit) {
+        async function limitCheck(checkbox, className, maxLimit) {
             const checkedCount = document.querySelectorAll('.' + className + ':checked').length;
             if (checkedCount > maxLimit) {
                 alert("You can select a maximum of " + maxLimit + " tags.");
