@@ -31,6 +31,50 @@ ADMIN_EMAIL = "qureshidawood1505@gmail.com"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# 10 Detailed Categories with 15 Positive and 15 Negative tags each (English)
+CATEGORY_PRESETS = {
+    "Restaurant / Cafe": {
+        "pos": "Great Food,Fast Service,Clean,Friendly Staff,Good Ambiance,Value for Money,Fresh Ingredients,Tasty,Cozy Vibe,Great Portions,Authentic Taste,Hygienic,Prompt Delivery,Well Prepared,Scenic View",
+        "neg": "Slow Service,Rude Staff,Cold Food,Dirty Tables,Overpriced,Small Portions,Noisy,Bland Taste,Poor Quality,Unhygienic,Stale Food,Wrong Order,Uncooked,Bad Smell,Cramped Seating"
+    },
+    "Salon / Spa": {
+        "pos": "Professional,Relaxing,Clean,Skilled Stylist,Great Hygiene,Friendly Staff,Value for Money,Good Products,Punctual,Soothing Vibe,Expert Advice,Gentle Massage,Refreshing,Great Haircut,Skin Glowing",
+        "neg": "Rude Staff,Unprofessional,Rushed Service,Dirty Tools,Expensive,Poor Results,Delayed Appointment,Unclean,Bad Haircut,Noisy,Skin Irritation,Wrong Treatment,Rough Handling,Unsanitary,Inexperienced"
+    },
+    "Retail / Shopping": {
+        "pos": "Wide Variety,Helpful Staff,Good Discounts,Quality Products,Clean Store,Easy Checkout,Original Items,Great Exchange Policy,Spacious,Value for Money,Trendy Collection,Well Stocked,Fast Billing,Polite Cashier,Ample Parking",
+        "neg": "Limited Stock,Rude Staff,Long Billing Queue,Expensive,Crowded,No Exchange,Damaged Items,Unhelpful,Messy Store,No Discounts,Broken Display,Expired Items,Hidden Charges,Poor Lighting,Long Waiting"
+    },
+    "Hotel / Resort": {
+        "pos": "Comfortable Rooms,Luxurious Ambiance,Courteous Staff,Scenic Views,Clean Swimming Pool,Delicious Breakfast,Spacious Suite,Hygienic Bathrooms,Prompt Room Service,Peaceful Environment,Valet Parking,Great Hospitality,Modern Amenities,Secure Property,Fast Check-in",
+        "neg": "Unclean Rooms,Rude Reception,No Hot Water,Slow Wi-Fi,Stains on Bedsheets,Bad Odor,Noisy Location,Expensive Food,Pests Found,Poor Maintenance,Late Check-in,Broken AC,Uncomfortable Bed,Bad Lighting,Rude Staff"
+    },
+    "Gym / Fitness Studio": {
+        "pos": "Modern Equipment,Knowledgeable Trainers,Clean Changing Rooms,Motivating Environment,Spacious Workout Area,Flexible Timings,Hygienic Showers,Good Ventilation,Great Playlist,Effective Programs,Proper Sanitization,Friendly Community,Ample Weights,Locker Facility,Personal Attention",
+        "neg": "Broken Machines,Overcrowded,Unprofessional Trainers,Dirty Mats,No AC,Bad Smell,Unfriendly Staff,Hidden Fees,No Parking,Outdated Gear,Slippery Floor,Loud Music,No Lockers,Unclean Showers,Poor Guidance"
+    },
+    "Healthcare / Clinic": {
+        "pos": "Caring Doctor,Clean Clinic,Minimal Waiting Time,Friendly Nurses,Accurate Diagnosis,Affordable Fees,Polite Staff,Hygienic Instruments,Easy Booking,Clear Explanation,Well Equipped,Emergency Care,Calm Atmosphere,Reliable Pharmacy,Follow-up Care",
+        "neg": "Rude Receptionist,Long Waiting Hours,Expensive Consultation,Dirty Waiting Room,Incorrect Billing,Uncaring Doctor,Unsanitary,Misdiagnosis,No Parking,Rushed Checkup,Outdated Tools,No Emergency Help,Unhelpful Staff,Poor Hygiene,No Follow-up"
+    },
+    "Auto Repair / Garage": {
+        "pos": "Honest Mechanics,Fair Pricing,Fast Repair,Genuine Spare Parts,Clean Workshop,Expert Diagnosis,Reliable Service,Clear Quotation,Free Pickup,Punctual Delivery,Polite Owner,Good Advice,Warranty Offered,Well Equipped,Quality Work",
+        "neg": "Overcharging,Delayed Delivery,Fake Parts,Rude Mechanic,Unresolved Issues,Messy Garage,Hidden Costs,Poor Workmanship,No Warranty,Ignorant Staff,No Invoice,Damaged Car,Rough Handling,Unprofessional,Ignored Instructions"
+    },
+    "Dental Clinic": {
+        "pos": "Gentle Dentist,Painless Procedure,Clean Clinic,Modern Technology,Friendly Staff,Affordable Treatment,Hygienic Tools,Clear Guidance,No Waiting,Comfortable Chair,Polite Hygienist,Emergency Support,Sterile Environment,Great Results,Detailed Explanation",
+        "neg": "Rough Handling,Severe Pain,Unclean Clinic,Extremely Expensive,Rude Dentist,Incorrect Procedure,Outdated Equipment,Long Delay,Hidden Charges,Unprofessional Nurses,Sterilization Issues,Bad Smell,No Emergency Care,Bleeding,Poor Aftercare"
+    },
+    "Real Estate Agency": {
+        "pos": "Transparent Dealings,Professional Agents,Great Property Options,Helpful Support,Punctual Visits,Honest Advice,Smooth Documentation,Polite Staff,Good Negotiation,Verified Listings,Quick Response,Market Knowledge,Trustworthy,Clear Terms,End-to-End Service",
+        "neg": "Hidden Brokerage,Pushy Agents,Fake Listings,Delayed Papers,Rude Staff,Unprofessional,Unkept Promises,Misleading Info,Poor Follow-up,No Communication,Legal Issues,Wasted Time,High Commission,Unresponsive,Unreliable"
+    },
+    "Bakery / Confectionery": {
+        "pos": "Freshly Baked,Delicious Cakes,Mouthwatering Pastries,Hygienic Display,Friendly Baker,Custom Design,Reasonable Prices,Soft Bread,Great Aroma,Prompt Packing,Awesome Taste,Variety of Flavors,Clean Store,Polite Staff,Eggless Options",
+        "neg": "Stale Items,Dry Cake,Overpriced,Rude Staff,Wrong Order,Too Sweet,Melted Frosting,Unhygienic Display,Broken Packaging,Bad Odor,Hair Found,Limited Options,Late Delivery,Poor Quality,Stale Bread"
+    }
+}
+
 async def init_db():
     os.makedirs(os.path.dirname(DB_NAME), exist_ok=True)
     async with aiosqlite.connect(DB_NAME) as db:
@@ -57,8 +101,8 @@ async def init_db():
                 google_link TEXT,
                 unique_link TEXT UNIQUE,
                 status TEXT DEFAULT 'pending',
-                positive_tags TEXT DEFAULT 'Fast Service,Friendly Staff,Clean,Great Ambiance,Value for Money',
-                negative_tags TEXT DEFAULT 'Slow Service,Rude Staff,Dirty,Overpriced,Poor Quality',
+                positive_tags TEXT DEFAULT '',
+                negative_tags TEXT DEFAULT '',
                 FOREIGN KEY(owner_id) REFERENCES users(id)
             )
         ''')
@@ -243,14 +287,9 @@ async def register_verify(req: RegisterVerifyReq):
             owner_id = user[0]
             unique_slug = uuid.uuid4().hex[:12]
             
-            pos = "Fast Service,Friendly Staff,Clean,Great Ambiance,Value for Money"
-            neg = "Slow Service,Rude Staff,Dirty,Overpriced,Poor Quality"
-            if req.category == "Salon / Spa":
-                pos = "Professional,Relaxing,Clean,Skilled Stylist,Great Hygiene"
-                neg = "Rude Staff,Unprofessional,Rushed Service,Expensive,Poor Results"
-            elif req.category == "Retail / Shopping":
-                pos = "Wide Variety,Helpful Staff,Good Discounts,Quality Products,Clean Store"
-                neg = "Limited Stock,Rude Staff,Long Billing Queue,Expensive,Crowded"
+            preset = CATEGORY_PRESETS.get(req.category, CATEGORY_PRESETS["Restaurant / Cafe"])
+            pos = preset["pos"]
+            neg = preset["neg"]
 
             await db.execute(f"UPDATE users SET otp_code = NULL, pin_code = ? WHERE id = ?", (req.pin or None, owner_id))
             await db.execute("INSERT INTO businesses (owner_id, name, category, google_link, unique_link, status, positive_tags, negative_tags) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)", 
@@ -333,14 +372,9 @@ async def add_business_inside_dashboard(req: BusinessCreate, auth_token: Optiona
     user = get_current_user(auth_token)
     if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
     
-    pos = "Fast Service,Friendly Staff,Clean,Great Ambiance,Value for Money"
-    neg = "Slow Service,Rude Staff,Dirty,Overpriced,Poor Quality"
-    if req.category == "Salon / Spa":
-        pos = "Professional,Relaxing,Clean,Skilled Stylist,Great Hygiene"
-        neg = "Rude Staff,Unprofessional,Rushed Service,Expensive,Poor Results"
-    elif req.category == "Retail / Shopping":
-        pos = "Wide Variety,Helpful Staff,Good Discounts,Quality Products,Clean Store"
-        neg = "Limited Stock,Rude Staff,Long Billing Queue,Expensive,Crowded"
+    preset = CATEGORY_PRESETS.get(req.category, CATEGORY_PRESETS["Restaurant / Cafe"])
+    pos = preset["pos"]
+    neg = preset["neg"]
 
     unique_slug = uuid.uuid4().hex[:12]
     async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
@@ -464,28 +498,85 @@ async def submit_review(req: ReviewSubmit):
 @app.post("/api/ai/generate-review")
 async def generate_ai_review(req: dict):
     b_name = req.get('business_name', 'this establishment')
-    name = req.get('customer_name', 'A happy customer')
+    category = req.get('category', 'Restaurant / Cafe')
     tags = req.get('tags', [])
     lang = req.get('lang', 'en')
     
+    # Category-tailored contextual review strings
+    cat_intros = {
+        "Restaurant / Cafe": {
+            "en": [f"I recently visited {b_name} and the food and ambiance were incredible.", f"Had a wonderful dining experience at {b_name} today."],
+            "hi": [f"मैंने हाल ही में {b_name} का दौरा किया और यहाँ का खाना और माहौल शानदार था।", f"आज {b_name} में भोजन का अनुभव बहुत अच्छा रहा।"],
+            "mr": [f"मी अलीकडेच {b_name} ला भेट दिली आणि येथील अन्न आणि वातावरण अप्रतिम होते.", f"आज {b_name} मध्ये जेवणाचा अनुभव खूप छान होता."]
+        },
+        "Salon / Spa": {
+            "en": [f"My session at {b_name} was extremely relaxing and professional.", f"Completely refreshed after visiting {b_name}."],
+            "hi": [f"{b_name} में मेरा सत्र बेहद आरामदायक और पेशेवर था।", f"{b_name} जाने के बाद मैं पूरी तरह तरोताजा महसूस कर रहा हूँ।"],
+            "mr": [f"{b_name} मधील माझे सत्र अत्यंत आरामदायक आणि व्यावसायिक होते.", f"{b_name} ला भेट दिल्यानंतर एकदम फ्रेश वाटले."]
+        },
+        "Retail / Shopping": {
+            "en": [f"Shopping at {b_name} was a fantastic experience with great options.", f"Found exactly what I needed at {b_name}."],
+            "hi": [f"{b_name} पर खरीदारी करना शानदार अनुभव था, बहुत अच्छे विकल्प मिले।", f"मुझे {b_name} पर बिल्कुल वही मिला जिसकी मुझे तलाश थी।"],
+            "mr": [f"{b_name} मध्ये खरेदी करणे हा एक छान अनुभव होता, खूप चांगले पर्याय मिळाले.", f"मला {b_name} वर अगदी मला हवे असलेले सामान मिळाले."]
+        },
+        "Hotel / Resort": {
+            "en": [f"Our stay at {b_name} was exceptionally comfortable and luxurious.", f"Loved the hospitality and rooms at {b_name}."],
+            "hi": [f"{b_name} में हमारा प्रवास बेहद आरामदायक और शानदार रहा।", f"मुझे {b_name} की आतिथ्य सत्कार और कमरे बहुत पसंद आए।"],
+            "mr": [f"{b_name} मधील आमचा मुक्काम अत्यंत आरामदायी आणि विलासी होता.", f"मला {b_name} मधील आतिथ्य आणि खोल्या खूप आवडल्या."]
+        },
+        "Gym / Fitness Studio": {
+            "en": [f"Working out at {b_name} is always motivating and energizing.", f"Great equipment and trainers at {b_name}."],
+            "hi": [f"{b_name} में वर्कआउट करना हमेशा ऊर्जावान और प्रेरणादायक होता है।", f"{b_name} में बेहतरीन उपकरण और ट्रेनर हैं।"],
+            "mr": [f"{b_name} मध्ये कसरत करणे नेहमीच ऊर्जावान आणि प्रेरणादायी असते.", f"{b_name} मध्ये उत्तम उपकरणे आणि प्रशिक्षक आहेत."]
+        },
+        "Healthcare / Clinic": {
+            "en": [f"The care and attention at {b_name} made me feel so secure.", f"Very professional and clean clinic at {b_name}."],
+            "hi": [f"{b_name} पर मिलने वाली देखभाल से मुझे बहुत राहत मिली।", f"{b_name} एक बहुत ही पेशेवर और स्वच्छ क्लिनिक है।"],
+            "mr": [f"{b_name} येथील काळजी आणि लक्ष यामुळे मला खूप सुरक्षित वाटले.", f"{b_name} ही अतिशय व्यावसायिक आणि स्वच्छ क्लिनिक आहे."]
+        },
+        "Auto Repair / Garage": {
+            "en": [f"Got my vehicle fixed quickly and honestly at {b_name}.", f"Very reliable service and fair pricing at {b_name}."],
+            "hi": [f"{b_name} पर मेरी गाड़ी की मरम्मत बहुत जल्दी और ईमानदारी से की गई।", f"{b_name} पर सेवा बहुत भरोसेमंद और उचित कीमत वाली है।"],
+            "mr": [f"{b_name} वर माझ्या गाडीची दुरुस्ती अतिशय जलद आणि प्रामाणिकपणे केली.", f"{b_name} वर सेवा खूप विश्वासार्ह आणि योग्य किंमतीची आहे."]
+        },
+        "Dental Clinic": {
+            "en": [f"My dental procedure at {b_name} was completely painless and smooth.", f"Very gentle dentist and clean environment at {b_name}."],
+            "hi": [f"{b_name} पर मेरी दांतों की प्रक्रिया पूरी तरह से दर्दमुक्त और सहज रही।", f"{b_name} में डॉक्टर बहुत सौम्य और वातावरण स्वच्छ है।"],
+            "mr": [f"{b_name} येथील माझी दातांची प्रक्रिया पूर्णपणे वेदनारहित आणि सुलभ झाली.", f"{b_name} मध्ये डॉक्टर अतिशय नम्र आणि वातावरण स्वच्छ आहे."]
+        },
+        "Real Estate Agency": {
+            "en": [f"Finding a property through {b_name} was completely hassle-free.", f"Professional agents and transparent dealings at {b_name}."],
+            "hi": [f"{b_name} के माध्यम से संपत्ति ढूंढना बेहद आसान और झंझट-मुक्त था।", f"{b_name} पर एजेंट बहुत पेशेवर और पारदर्शी हैं।"],
+            "mr": [f"{b_name} द्वारे मालमत्ता शोधणे अत्यंत सोपे आणि त्रासमुक्त होते.", f"{b_name} वर एजंट अतिशय व्यावसायिक आणि पारदर्शक आहेत."]
+        },
+        "Bakery / Confectionery": {
+            "en": [f"The baked goods and cakes from {b_name} are exceptionally delicious.", f"Fresh and mouthwatering treats always at {b_name}."],
+            "hi": [f"{b_name} के बेक किए हुए उत्पाद और केक बेहद स्वादिष्ट हैं।", f"{b_name} पर हमेशा ताजे और लजीज व्यंजन मिलते हैं।"],
+            "mr": [f"{b_name} कडून मिळालेले बेक केलेले पदार्थ आणि केक अत्यंत स्वादिष्ट आहेत.", f"{b_name} वर नेहमी ताजे आणि चवदार पदार्थ मिळतात."]
+        }
+    }
+
+    cat_dict = cat_intros.get(category, cat_intros["Restaurant / Cafe"])
+    intros = cat_dict.get(lang, cat_dict["en"])
+    
+    tag_str = ", ".join(tags) if tags else ""
+    
     if lang == 'hi':
-        intros = [f"मैंने हाल ही में {b_name} का दौरा किया और यह एक शानदार अनुभव था।", f"{b_name} के लिए पाँच सितारे!"]
-        middles = [f"उन्होंने वास्तव में {', '.join(tags)} को बेहतरीन तरीके से निभाया।"] if tags else []
+        middles = [f"उन्होंने वास्तव में {tag_str} को बेहतरीन तरीके से निभाया।"] if tags else []
         outros = ["अत्यधिक अनुशंसित!", "निश्चित रूप से जल्द ही वापस आऊंगा।"]
-        review = random.choice(intros) + (" " + random.choice(middles) if middles else "") + " " + random.choice(outros)
-        return {"review": review}
     elif lang == 'mr':
-        intros = [f"मी अलीकडेच {b_name} ला भेट दिली आणि हा एक अद्भुत अनुभव होता.", f"{b_name} साठी पाच तारे!"]
-        middles = [f"त्यांनी खरोखरच {', '.join(tags)} उत्तम प्रकारे हाताळले."] if tags else []
+        middles = [f"त्यांनी खरोखरच {tag_str} उत्तम प्रकारे हाताळले."] if tags else []
         outros = ["अत्यंत शिफारस केलेले!", "नक्कीच लवकरच परत येईल."]
-        review = random.choice(intros) + (" " + random.choice(middles) if middles else "") + " " + random.choice(outros)
-        return {"review": review}
     else:
-        intros = [f"I recently visited {b_name} and it was a wonderful experience.", f"Five stars for {b_name}!"]
-        middles = [f"They completely nailed the {', '.join(tags)}."] if tags else []
+        middles = [f"They completely nailed the {tag_str}."] if tags else []
         outros = ["Highly recommended!", "Will definitely be coming back soon."]
-        review = random.choice(intros) + (" " + random.choice(middles) if middles else "") + " " + random.choice(outros)
-        return {"review": review}
+
+    review = random.choice(intros)
+    if middles:
+        review += " " + random.choice(middles)
+    review += " " + random.choice(outros)
+    
+    return {"review": review}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)

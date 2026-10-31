@@ -19,11 +19,18 @@
                 <input type="text" id="r-name" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="The Local Cafe">
             </div>
             <div>
-                <label class="block text-sm font-semibold mb-1 text-slate-700">Business Category</label>
+                <label class="block text-sm font-semibold mb-1 text-slate-700">Business Category (10+ options)</label>
                 <select id="r-category" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-white">
                     <option value="Restaurant / Cafe">Restaurant / Cafe</option>
                     <option value="Salon / Spa">Salon / Spa</option>
                     <option value="Retail / Shopping">Retail / Shopping</option>
+                    <option value="Hotel / Resort">Hotel / Resort</option>
+                    <option value="Gym / Fitness Studio">Gym / Fitness Studio</option>
+                    <option value="Healthcare / Clinic">Healthcare / Clinic</option>
+                    <option value="Auto Repair / Garage">Auto Repair / Garage</option>
+                    <option value="Dental Clinic">Dental Clinic</option>
+                    <option value="Real Estate Agency">Real Estate Agency</option>
+                    <option value="Bakery / Confectionery">Bakery / Confectionery</option>
                 </select>
             </div>
             <div>
@@ -91,7 +98,7 @@
                 alert("Registration successful! Redirecting to login.");
                 window.location.href = "/";
             } else {
-                alert("Invalid OTP. Trust code.");
+                alert("Invalid OTP. Try again.");
             }
         }
     </script>
