@@ -58,7 +58,7 @@
     <footer class="text-center py-6 text-sm">
         <a href="/" class="text-slate-400 hover:text-slate-600 transition-colors">Business Owner Login</a>
     </footer>
-<script>
+    <script>
         const pathParts = window.location.pathname.split('/');
         const uniqueLink = pathParts[pathParts.length - 1];
         let businessData = {};
@@ -146,17 +146,6 @@
                 `;
             });
 
-        const starBtns = document.querySelectorAll('.star-btn');
-        starBtns.forEach((btn, idx) => {
-            btn.addEventListener('click', () => {
-                currentRating = idx + 1;
-                starBtns.forEach((b, i) => b.classList.toggle('text-amber-400', i < currentRating));
-                starBtns.forEach((b, i) => b.classList.toggle('text-slate-300', i >= currentRating));
-                renderTags();
-                document.getElementById('proceed-btn').disabled = false;
-            });
-        });
-
         window.tagTrans = {
             hi: {
                 "Great Food": "बढ़िया खाना", "Fast Service": "तेज सेवा", "Clean": "साफ-सुथरा", "Friendly Staff": "मिलनसार स्टाफ", "Good Ambiance": "अच्छा माहौल", "Value for Money": "पैसा वसूल", "Fresh Ingredients": "ताजा सामग्री", "Tasty": "स्वादिष्ट", "Cozy Vibe": "आरामदायक माहौल", "Great Portions": "बढ़िया मात्रा", "Authentic Taste": "असली स्वाद", "Hygienic": "स्वच्छ", "Prompt Delivery": "तुरंत डिलीवरी", "Well Prepared": "अच्छी तरह तैयार", "Scenic View": "सुंदर दृश्य",
@@ -173,11 +162,11 @@
                 "Rude Receptionist": "रूखा रिसेप्शनिस्ट", "Long Waiting Hours": "लंबी प्रतीक्षा घंटे", "Expensive Consultation": "महंगी सलाह", "Dirty Waiting Room": "गंदा प्रतीक्षा कक्ष", "Incorrect Billing": "गलत बिलिंग", "Uncaring Doctor": "अपरवाह डॉक्टर", "Unsanitary": "अस्वच्छ", "Misdiagnosis": "गलत निदान", "Rushed Checkup": "जल्दबाजी में चेकअप", "Outdated Tools": "पुराने उपकरण", "No Emergency Help": "कोई आपातकालीन मदद नहीं", "Unhelpful Staff": "असहाय स्टाफ", "No Follow-up": "कोई फॉलो-अप नहीं",
                 "Honest Mechanics": "ईमानदार मैकेनिक", "Fair Pricing": "उचित मूल्य", "Fast Repair": "तेज मरम्मत", "Genuine Spare Parts": "असली स्पेयर पार्ट्स", "Clean Workshop": "साफ कार्यशाला", "Expert Diagnosis": "विशेषज्ञ निदान", "Reliable Service": "भरोसेमंद सेवा", "Clear Quotation": "स्पष्ट कोटेशन", "Free Pickup": "मुफ्त पिकअप", "Punctual Delivery": "समय पर डिलीवरी", "Good Advice": "अच्छी सलाह", "Warranty Offered": "वारंटी दी गई", "Quality Work": "गुणवत्ता का काम",
                 "Overcharging": "अधिक शुल्क", "Delayed Delivery": "देरी से डिलीवरी", "Fake Parts": "नकली पार्ट्स", "Rude Mechanic": "रूखा मैकेनिक", "Unresolved Issues": "अनसुलझी समस्याएं", "Messy Garage": "गंदा गैराज", "Hidden Costs": "छिपी लागत", "Poor Workmanship": "खराब कारीगरी", "No Warranty": "कोई वारंटी नहीं", "Ignorant Staff": "लापरवाह स्टाफ", "No Invoice": "कोई चालान नहीं", "Damaged Car": "क्षतिग्रस्त कार", "Ignored Instructions": "निर्देशों की अनदेखी",
-                "Gentle Dentist": "कोमल डेंटिस्ट", "Painless Procedure": "दर्द रहित प्रक्रिया", "Modern Technology": "आधुनिक तकनीक", "Affordable Treatment": "किफायती इलाज", "Hygienic Tools": "स्वच्छ उपकरण", "Clear Guidance": "स्पष्ट मार्गदर्शन", "No Waiting": "कोई प्रतीक्षा नहीं", "Comfortable Chair": "आरामदायक कुर्सी", "Polite Hygienist": "विनम्र हाइजेनिस्ट", "Emergency Support": "आपातकालीन सहायता", "Sterile Environment": "बाँझ वातावरण", "Great Results": "शानदार परिणाम", "Detailed Explanation": "विस्तृत विवरण",
+                "Gentle Dentist": "कोमल डेंटिस्ट", "Painless Procedure": "दर्द रहित प्रक्रिया", "Modern Technology": "आधुनिक तकनीक", "Affordable Treatment": "किफायती इलाज", "Hygienic Tools": "स्वच्छ उपकरण", "Clear Guidance": "स्पष्ट मार्गदर्शन", "No Waiting": "कोई प्रतीक्षा नहीं", "Comfortable Chair": "आरामदायक कुर्सी", "Polite Hygienist": "विनम्र हाइजेनिस्ट", "Emergency Support": "आपत्कालीन सहायता", "Sterile Environment": "बाँझ वातावरण", "Great Results": "शानदार परिणाम", "Detailed Explanation": "विस्तृत विवरण",
                 "Severe Pain": "तेज दर्द", "Extremely Expensive": "अत्यधिक महंगा", "Rude Dentist": "रूखा डेंटिस्ट", "Incorrect Procedure": "गलत प्रक्रिया", "Outdated Equipment": "पुराने उपकरण", "Long Delay": "लंबी देरी", "Unprofessional Nurses": "गैर-पेशेवर नर्स", "Sterilization Issues": "नसबंदी समस्याएं", "Bleeding": "खून बह रहा है", "Poor Aftercare": "खराब बाद की देखभाल",
                 "Transparent Dealings": "पारदर्शी सौदे", "Professional Agents": "पेशेवर एजेंट", "Great Property Options": "शानदार संपत्ति विकल्प", "Helpful Support": "मददगार समर्थन", "Punctual Visits": "समय पर विजिट", "Honest Advice": "ईमानदार सलाह", "Smooth Documentation": "सुगम दस्तावेजीकरण", "Good Negotiation": "अच्छा मोलभाव", "Verified Listings": "सत्यापित लिस्टिंग", "Quick Response": "त्वरित प्रतिक्रिया", "Market Knowledge": "बाजार का ज्ञान", "Trustworthy": "भरोसेमंद", "Clear Terms": "स्पष्ट शर्तें", "End-to-End Service": "एंड-टू-एंड सर्विस",
                 "Hidden Brokerage": "छिपी हुई दलाली", "Pushy Agents": "ज़ोर जबरदस्ती करने वाले एजेंट", "Fake Listings": "नकली लिस्टिंग", "Delayed Papers": "देरी से कागजात", "Unkept Promises": "अरे हुए वादे", "Misleading Info": "भ्रामक जानकारी", "Poor Follow-up": "खराब फॉलो-अप", "No Communication": "कोई संवाद नहीं", "Legal Issues": "कानूनी मुद्दे", "Wasted Time": "समय की बर्बादी", "High Commission": "उच्च कमीशन", "Unresponsive": "अनुत्तरदायी", "Unreliable": "अविश्वसनीय",
-                "Freshly Baked": "ताजा बेक किया हुआ", "Delicious Cakes": "स्वादिष्ट केक", "Mouthwatering Pastries": "मुंह में पानी लाने वाली पेस्ट्री", "Hygienic Display": "स्वच्छ डिस्प्ले", "Friendly Baker": "मिलनसार बेकर", "Custom Design": "कस्टम डिजाइन", "Reasonable Prices": "उचित कीमतें", "Soft Bread": "मुलायम ब्रेड", "Great Aroma": "शानदार खुशबू", "Prompt Packing": "तुरंत पैकिंग", "Variety of Flavors": "स्वाद की विविधता", "Eggless Options": "बिना अंडे के विकल्प",
+                "Freshly Baked": "ताजा बेक किया हुआ", "Delicious Cakes": "स्वादिष्ट केक", "Mouthwatering Pastries": "मुंह में पानी लाने वाली पेस्ट्री", "Hygienic Display": "स्वच्छ डिस्प्ले", "Friendly Baker": "मिलनसार बेकर", "Custom Design": "कस्टम डिजाइन", "Reasonable Prices": "उचित कीमतें", "Soft Bread": "मुलायम ब्रेड", "Great Aroma": "छान खुशबू", "Prompt Packing": "तुरंत पैकिंग", "Variety of Flavors": "स्वाद की विविधता", "Eggless Options": "बिना अंडे के विकल्प",
                 "Stale Items": "बासी सामान", "Dry Cake": "सूखा केक", "Too Sweet": "बहुत मीठा", "Melted Frosting": "पिघली हुई फ्रॉस्टिंग", "Broken Packaging": "टूटी हुई पैकेजिंग", "Hair Found": "बाल मिला", "Limited Options": "सीमित विकल्प"
             },
             mr: {
@@ -188,7 +177,7 @@
                 "Wide Variety": "मोठी वैविध्यता", "Helpful Staff": "मदतशीर कर्मचारी", "Good Discounts": "छान सूट", "Quality Products": "दर्जेदार उत्पादने", "Clean Store": "स्वच्छ दुकान", "Easy Checkout": "सोपे बिलिंग", "Original Items": "अस्सल वस्तू", "Great Exchange Policy": "उत्तम एक्सचेंज पॉलिसी", "Spacious": "मोकळी जागा", "Trendy Collection": "ट्रेंडी कलेक्शन", "Well Stocked": "भरपूर साठा", "Fast Billing": "जलद बिलिंग", "Polite Cashier": "नम्र कॅशियर", "Ample Parking": "पुष्कळ पार्किंग",
                 "Limited Stock": "मर्यादित साठा", "Long Billing Queue": "लांब रांग", "Crowded": "गर्दी", "No Exchange": "एक्सचेंज नाही", "Damaged Items": "खराब वस्तू", "Unhelpful": "अमदतशीर", "Messy Store": "अव्यवस्थित दुकान", "Broken Display": "तुटलेले डिस्प्ले", "Expired Items": "कालबाह्य वस्तू", "Hidden Charges": "लपलेले शुल्क", "Poor Lighting": "प्रकाश कमी", "Long Waiting": "जास्त प्रतीक्षा",
                 "Comfortable Rooms": "आरामदायी खोल्या", "Luxurious Ambiance": "विलासी वातावरण", "Courteous Staff": "नम्र कर्मचारी", "Scenic Views": "निसर्गरम्य दृश्य", "Clean Swimming Pool": "स्वच्छ स्विमिंग पूल", "Delicious Breakfast": "स्वादिष्ट नाश्ता", "Spacious Suite": "मोठी सुइट", "Hygienic Bathrooms": "स्वच्छ बाथरुम", "Prompt Room Service": "तातडीने रूम सर्व्हिस", "Peaceful Environment": "शांत वातावरण", "Valet Parking": "व्हॅलेट पार्किंग", "Great Hospitality": "उत्तम आतिथ्य", "Modern Amenities": "आधुनिक सुविधा", "Secure Property": "सुरक्षित मालमत्ता", "Fast Check-in": "जलद चेक-इन",
-                "Unclean Rooms": "अस्वच्छ खोल्या", "Rude Reception": "उद्धट रिसेप्शन", "No Hot Water": "गरम पाणी नाही", "Slow Wi-Fi": "सवकाश वाय-फाय", "Stains on Bedsheets": "चादरींवर डाग", "Bad Odor": "वाईट वास", "Noisy Location": "गोंगाटाचे ठिकाण", "Expensive Food": "महाग अन्न", "Pests Found": "किडे आढळले", "Poor Maintenance": "खराब देखभाल", "Late Check-in": "उशिरा चेक-इन", "Broken AC": "बिघडलेला एसी", "Uncomfortable Bed": "असमाधानकारक बेड",
+                "Unclean Rooms": "अस्वच्छ खोल्या", "Rude Reception": "उद्धट रिसेप्शन", "No Hot Water": "गरम पाणी नाही", "Slow Wi-Fi": "सवकाश वाय-फाय", "Stains on Bedsheets": "चादरींवर दाग", "Bad Odor": "वाईट वास", "Noisy Location": "गोंगाटाचे ठिकाण", "Expensive Food": "महाग अन्न", "Pests Found": "किडे आढळले", "Poor Maintenance": "खराब देखभाल", "Late Check-in": "उशिरा चेक-इन", "Broken AC": "बिघडलेला एसी", "Uncomfortable Bed": "असमाधानकारक बेड",
                 "Modern Equipment": "आधुनिक उपकरणे", "Knowledgeable Trainers": "पालक प्रशिक्षक", "Clean Changing Rooms": "स्वच्छ कपडे बदलण्याची खोली", "Motivating Environment": "प्रेरक वातावरण", "Spacious Workout Area": "मोकळी कसरत जागा", "Flexible Timings": "लवचिक वेळ", "Hygienic Showers": "स्वच्छ शॉवर", "Good Ventilation": "चांगली हवा", "Great Playlist": "उत्तम गाणी", "Effective Programs": "प्रभावी कार्यक्रम", "Proper Sanitization": "योग्य निर्जंतुकीकरण", "Friendly Community": "मित्रत्वाचे वातावरण", "Ample Weights": "भरपूर वजन", "Locker Facility": "लॉकर सुविधा", "Personal Attention": "वैयक्तिक लक्ष",
                 "Broken Machines": "बिघडलेली यंत्रे", "Overcrowded": "अतिगर्दी", "Dirty Mats": "मळक्या मॅट्स", "No AC": "एसी नाही", "Unfriendly Staff": "अमित्र कर्मचारी", "Hidden Fees": "लपलेले शुल्क", "NoParking": "पार्किंग नाही", "Outdated Gear": "जुनी उपकरणे", "Slippery Floor": "घसरणारा फर्श", "Loud Music": "मोठे संगीत", "No Lockers": "लॉकर नाही", "Unclean Showers": "अस्वच्छ शॉवर", "Poor Guidance": "चुकीचे मार्गदर्शन",
                 "Caring Doctor": "काळजी घेणारे डॉक्टर", "Minimal Waiting Time": "कमी प्रतीक्षा वेळ", "Friendly Nurses": "मित्रत्वाच्या परिचारिका", "Accurate Diagnosis": "अचूक निदान", "Affordable Fees": "परवडणारी फी", "Polite Staff": "नम्र कर्मचारी", "Hygienic Instruments": "स्वच्छ उपकरणे", "Easy Booking": "सोपे बुकिंग", "Clear Explanation": "स्पष्ट स्पष्टीकरण", "Well Equipped": "सुसज्ज", "Emergency Care": "आपत्कालीन काळजी", "Calm Atmosphere": "शांत वातावरण", "Reliable Pharmacy": "विश्वासू औषध दुकान", "Follow-up Care": "फॉलो-अप काळजी",
@@ -196,11 +185,13 @@
                 "Honest Mechanics": "प्रामाणिक मेकॅनिक", "Fair Pricing": "योग्य किंमत", "Fast Repair": "जलद दुरुस्ती", "Genuine Spare Parts": "अस्सल स्पेयर पार्ट्स", "Clean Workshop": "स्वच्छ कार्यशाळा", "Expert Diagnosis": "तज्ज्ञ निदान", "Reliable Service": "विश्वासू सेवा", "Clear Quotation": "स्पष्ट कोटेशन", "Free Pickup": "मुफ्त पिकअप", "Punctual Delivery": "वेळेवर डिलिव्हरी", "Good Advice": "चांगला सल्ला", "Warranty Offered": "वारंटी दिली", "Quality Work": "दर्जेदार काम",
                 "Overcharging": "जास्त पैसे घेणे", "Delayed Delivery": "उशिरा डिलिव्हरी", "Fake Parts": "नकली पार्ट्स", "Rude Mechanic": "उद्धट मेकॅनिक", "Unresolved Issues": "न सुटलेल्या समस्या", "Messy Garage": "अव्यवस्थित गॅरेज", "Hidden Costs": "लपलेला खर्च", "Poor Workmanship": "वाईट काम", "No Warranty": "वारंटी नाही", "Ignorant Staff": "दुर्लक्षित कर्मचारी", "No Invoice": "पावती नाही", "Damaged Car": "खराब कार", "Ignored Instructions": "सूचनांकडे दुर्लक्ष",
                 "Gentle Dentist": "सौम्य दंतवैद्य", "Painless Procedure": "वेदनामुक्त प्रक्रिया", "Modern Technology": "आधुनिक तंत्रज्ञान", "Affordable Treatment": "परवडणारा उपचार", "Hygienic Tools": "स्वच्छ उपकरणे", "Clear Guidance": "स्पष्ट मार्गदर्शन", "No Waiting": "प्रतीक्षा नाही", "Comfortable Chair": "आरामदायी खुर्ची", "Polite Hygienist": "नम्र हायजीनिस्ट", "Emergency Support": "आपत्कालीन मदत", "Sterile Environment": "निर्जंतुक वातावरण", "Great Results": "उत्तम निकाल", "Detailed Explanation": "तपशीलवार स्पष्टीकरण",
-                "Severe Pain": "तीव्र वेदना", "Extremely Expensive": "अत्यधिक महंगा", "Rude Dentist": "रूखा डेंटिस्ट", "Incorrect Procedure": "गलत प्रक्रिया", "Outdated Equipment": "पुराने उपकरण", "Long Delay": "लंबी देरी", "Unprofessional Nurses": "गैर-पेशेवर नर्स", "Sterilization Issues": "नसबंदी समस्याएं", "Bleeding": "खून बह रहा है", "Poor Aftercare": "खराब बाद की देखभाल",
-                "Transparent Dealings": "पारदर्शी सौदे", "Professional Agents": "पेशेवर एजेंट", "Great Property Options": "शानदार संपत्ति विकल्प", "Helpful Support": "मददगार समर्थन", "Punctual Visits": "समय पर विजिट", "Honest Advice": "ईमानदार सलाह", "Smooth Documentation": "सुगम दस्तावेजीकरण", "Good Negotiation": "अच्छा मोलभाव", "Verified Listings": "सत्यापित लिस्टिंग", "Quick Response": "त्वरित प्रतिक्रिया", "Market Knowledge": "बाजार का ज्ञान", "Trustworthy": "भरोसेमंद", "Clear Terms": "स्पष्ट शर्तें", "End-to-End Service": "एंड-टू-एंड सर्विस",
-                "Hidden Brokerage": "छिपी हुई दलाली", "Pushy Agents": "ज़ोर जबरदस्ती करने वाले एजेंट", "Fake Listings": "नकली लिस्टिंग", "Delayed Papers": "देरी से कागजात", "Unkept Promises": "अरे हुए वादे", "Misleading Info": "भ्रामक जानकारी", "Poor Follow-up": "खराब फॉलो-अप", "No Communication": "कोई संवाद नहीं", "Legal Issues": "कानूनी मुद्दे", "Wasted Time": "समय की बर्बादी", "High Commission": "उच्च कमीशन", "Unresponsive": "अनुत्तरदायी", "Unreliable": "अविश्वसनीय",
-                "Freshly Baked": "ताजा बेक किया हुआ", "Delicious Cakes": "स्वादिष्ट केक", "Mouthwatering Pastries": "मुंह में पानी लाने वाली पेस्ट्री", "Hygienic Display": "स्वच्छ डिस्प्ले", "Friendly Baker": "मिलनसार बेकर", "Custom Design": "कस्टम डिजाइन", "Reasonable Prices": "उचित कीमतें", "Soft Bread": "मुलायम ब्रेड", "Great Aroma": "शानदार खुशबू", "Prompt Packing": "तुरंत पैकिंग", "Variety of Flavors": "स्वाद की विविधता", "Eggless Options": "बिना अंडे के विकल्प",
-                "Stale Items": "बासी सामान", "Dry Cake": "सूखा केक", "Too Sweet": "बहुत मीठा", "Melted Frosting": "पिघली हुई फ्रॉस्टिंग", "Broken Packaging": "टूटी हुई पैकेजिंग", "Hair Found": "बाल मिला", "Limited Options": "सीमित विकल्प"
+                "Severe Pain": "तीव्र वेदना", "Extremely Expensive": "अतिशय महाग", "Rude Dentist": "उद्धट दंतवैद्य", "Incorrect Procedure": "चुकीची प्रक्रिया", "Outdated Equipment": "जुनी उपकरणे", "Long Delay": "लांब उशीर", "Unprofessional Nurses": "अव्यावसायिक नर्स", "Sterilization Issues": "निर्जंतुकीकरण समस्या", "Bleeding": "रक्तस्त्राव", "Poor Aftercare": "खराब नंतरची काळजी",
+                "Transparent Dealings": "पारदर्शक व्यवहार", "Professional Agents": "व्यावसायिक एजंट", "Great Property Options": "उत्तम मालमत्ता पर्याय", "Helpful Support": "मदतशीर समर्थन", "Punctual Visits": "वेळेवर भेटी", "Honest Advice": "प्रामाणिक सल्ला", "Smooth Documentation": "सुगम कागदपत्रे", "Good Negotiation": "चांगली तडजोड", "Verified Listings": "सत्यापित याद्या", "Quick Response": "त्वरित प्रतिसाद", "Market Knowledge": "बाजारपेठेचे ज्ञान", "Trustworthy": "विश्वासू", "Clear Terms": "स्पष्ट अटी", "End-to-End Service": "एन्ड-टू-एन्ड सेवा",
+                "Hidden Brokerage": "लपलेली दलाली", "Pushy Agents": "जबरदस्ती करणारे एजंट", "Fake Listings": "खोट्या याद्या", "Delayed Papers": "उशिरा कागदपत्रे", "Unkept Promises": "पाळले न गेलेले वचन", "Misleading Info": "दिशाभूल करणारे माहिती", "Poor Follow-up": "खराब फॉलो-अप", "No Communication": "संवाद नाही", "Legal Issues": "कायदेशीर समस्या", "Wasted Time": "वेळ वाया गेला", "High Commission": "उच्च कमिशन", "Unresponsive": "प्रतिसाद न देणारा", "Unreliable": "अविश्वसनीय",
+                "Freshly Baked": "ताजे बेक केलेले", "Delicious Cakes": "स्वादिष्ट केक", "Mouthwatering Pastries": "तोंडाला पाणी आणणारे पेस्ट्री", "Hygienic Display": "स्वच्छ डिस्प्ले", "Friendly Baker": "मित्रत्वाचा बेकर", "Custom Design": "कस्टम डिझाइन",
+                "Reasonable Prices": "वाजवी किंमती", "Soft Bread": "मऊ ब्रेड", "Great Aroma": "छान सुगंध", "Prompt Packing": "तातडीने पॅकिंग",
+                "Variety of Flavors": "विविध फ्लेवर्स", "Eggless Options": "विना अंड्याचे पर्याय", "Stale Items": "शिळ्या वस्तू", "Dry Cake": "कोरा केक", "Too Sweet": "खूप गोड",
+                "Melted Frosting": "वितळलेली फ्रॉस्टिंग", "Broken Packaging": "तुटलेले पॅकेजिंग", "Hair Found": "केश आढळला", "Limited Options": "मर्यादित पर्याय"
             }
         };
 
@@ -251,6 +242,31 @@
             });
         }
 
+        const starBtns = document.querySelectorAll('.star-btn');
+        starBtns.forEach((btn, idx) => {
+            btn.addEventListener('click', () => {
+                currentRating = idx + 1;
+                starBtns.forEach((b, i) => b.classList.toggle('text-amber-400', i < currentRating));
+                starBtns.forEach((b, i) => b.classList.toggle('text-slate-300', i >= currentRating));
+                
+                const tagsWrapper = document.getElementById('tags-container').closest('.mb-6');
+                if (currentRating >= 4) {
+                    // 4-5 stars: Show positive tags ("What went well?")
+                    tagsWrapper.style.display = 'block';
+                    renderTags();
+                } else if (currentRating === 3) {
+                    // 3 stars: Show negative tags ("Areas of Improvement")
+                    tagsWrapper.style.display = 'block';
+                    renderTags();
+                } else {
+                    // 1-2 stars: Hide tags on main screen, route to private feedback form
+                    tagsWrapper.style.display = 'none';
+                }
+                
+                document.getElementById('proceed-btn').disabled = false;
+            });
+        });
+
         document.getElementById('proceed-btn').addEventListener('click', () => {
             const customerName = document.getElementById('customer-name').value.trim();
             if(!customerName) {
@@ -261,13 +277,29 @@
             document.getElementById('step-rating').classList.add('hidden');
             
             if (currentRating >= 3) {
-                // 3, 4, and 5 stars: Generate review and proceed to Google review form
+                // 3, 4, and 5 stars: Go to Google review generation
                 document.getElementById('step-ai-review').classList.remove('hidden');
+                
+                // If 3 stars, silently save the selected areas of improvement to private feedback
+                if (currentRating === 3 && selectedTags.length > 0) {
+                    fetch('/api/reviews/submit', {
+                        method: 'POST', headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({
+                            business_link: uniqueLink,
+                            customer_name: customerName,
+                            rating: currentRating, 
+                            tags: selectedTags, 
+                            feedback_text: `3-Star Areas of Improvement: ${selectedTags.join(', ')}`, 
+                            ai_draft: ""
+                        })
+                    });
+                }
+
                 fetch('/api/ai/generate-review', {
                     method: 'POST', headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({
                         rating: currentRating, 
-                        tags: selectedTags, 
+                        tags: currentRating >= 4 ? selectedTags : [], 
                         business_name: businessData.name, 
                         category: businessData.category,
                         customer_name: customerName,
@@ -281,6 +313,7 @@
             } else {
                 // 1 and 2 stars: Strict private feedback flow only
                 document.getElementById('step-feedback').classList.remove('hidden');
+                renderTags();
             }
         });
 
