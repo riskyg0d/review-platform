@@ -168,19 +168,18 @@
         }
 
         async function saveTagsExplicit(positive_tags, negative_tags) {
-    
             if(!currentSelectedBusiness) return;
-            const positive_tags = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
-            const negative_tags = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
+            const pos = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
+            const neg = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
             
             const res = await fetch('/api/owner/businesses/tags', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({business_id: currentSelectedBusiness.id, positive_tags, negative_tags})
+                body: JSON.stringify({business_id: currentSelectedBusiness.id, positive_tags: pos, negative_tags: neg})
             });
             if(res.ok) {
                 alert("Tags updated successfully!");
-                currentSelectedBusiness.positive_tags = positive_tags;
-                currentSelectedBusiness.negative_tags = negative_tags;
+                currentSelectedBusiness.positive_tags = pos;
+                currentSelectedBusiness.negative_tags = neg;
             } else {
                 alert("Error saving tags");
             }

@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Use DB_NAME from environment or fallback safely to a local relative file
 DB_NAME = os.getenv("DB_NAME", "platform_data.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret_key_please_change_in_production")
 ALGORITHM = "HS256"
@@ -230,7 +231,7 @@ def get_current_user(auth_token: Optional[str] = Cookie(None)):
 async def serve_index(request: Request, auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
     if user:
-        return RedirectResponse(url="/admin" if user["role"] == "admin" else "/dashboard", status_code=303)
+        return RedirectResponse(url="/admin" if user["role"] == "admin" else "/dashboard")
     return FileResponse("login.html")
 
 @app.get("/register", response_class=FileResponse)
@@ -240,17 +241,13 @@ async def serve_register(request: Request):
 @app.get("/dashboard", response_class=FileResponse)
 async def serve_dashboard(request: Request, auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
-    if not user:
-        return RedirectResponse(url="/", status_code=303)
-    if user["role"] == "admin": 
-        return RedirectResponse(url="/admin", status_code=303)
+    if not user or user["role"] == "admin": return RedirectResponse(url="/")
     return FileResponse("dashboard.html")
 
 @app.get("/admin", response_class=FileResponse)
 async def serve_admin(request: Request, auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
-    if not user or user["role"] != "admin": 
-        return RedirectResponse(url="/", status_code=303)
+    if not user or user["role"] != "admin": return RedirectResponse(url="/")
     return FileResponse("admin.html")
 
 @app.get("/review/{unique_link}", response_class=FileResponse)
@@ -325,7 +322,7 @@ async def request_otp(req: OTPRequest, background_tasks: BackgroundTasks):
     return {"message": "OTP sent."}
 
 @app.post("/api/auth/login")
-async def login(req: LoginRequest, response: Response, request: Request):
+async def login(req: LoginRequest, response: Response):
     async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
         async with db.execute("SELECT id, role, password, otp_code, pin_code FROM users WHERE email = ? OR phone = ?", (req.identifier, req.identifier)) as cursor:
             user = await cursor.fetchone()
@@ -348,15 +345,7 @@ async def login(req: LoginRequest, response: Response, request: Request):
         await db.commit()
         
     token = create_access_token({"sub": str(user_id), "role": role})
-    is_secure = request.url.scheme == "https"
-    response.set_cookie(
-        key="auth_token", 
-        value=token, 
-        httponly=True, 
-        max_age=7*24*60*60, 
-        samesite="lax", 
-        secure=is_secure
-    )
+    response.set_cookie(key="auth_token", value=token, httponly=True, max_age=7*24*60*60, samesite="lax", secure=True)
     return {"role": role}
 
 @app.post("/api/auth/set-pin")
@@ -370,15 +359,8 @@ async def set_pin(req: SetPinRequest, auth_token: Optional[str] = Cookie(None)):
     return {"message": "PIN updated successfully"}
 
 @app.post("/api/auth/logout")
-async def logout(request: Request, response: Response):
-    is_secure = request.url.scheme == "https"
-    response.delete_cookie(
-        key="auth_token", 
-        path="/", 
-        samesite="lax", 
-        secure=is_secure, 
-        httponly=True
-    )
+async def logout(response: Response):
+    response.delete_cookie(key="auth_token", path="/", samesite="lax", secure=True, httponly=True)
     return {"message": "Logged out"}
 
 @app.get("/api/owner/businesses")
@@ -582,7 +564,7 @@ async def generate_ai_review(req: dict):
         "Healthcare / Clinic": {
             "en": [f"The care and attention at {b_name} made me feel so secure.", f"Very professional and clean clinic at {b_name}."],
             "hi": [f"{b_name} पर मिलने वाली देखभाल से मुझे बहुत राहत मिली।", f"{b_name} एक बहुत ही पेशेवर और स्वच्छ क्लिनिक है।"],
-            "mr": [f"{b_name} येथील काळजी और लक्ष यामुळे मला खूप सुरक्षित वाटले.", f"{b_name} ही अतिशय व्यावसायिक और स्वच्छ क्लिनिक आहे."]
+            "mr": [f"{b_name} येथील काळजी आणि लक्ष यामुळे मला खूप सुरक्षित वाटले.", f"{b_name} ही अतिशय व्यावसायिक और स्वच्छ क्लिनिक आहे."]
         },
         "Auto Repair / Garage": {
             "en": [f"Got my vehicle fixed quickly and honestly at {b_name}.", f"Very reliable service and fair pricing at {b_name}."],
@@ -630,5 +612,3 @@ async def generate_ai_review(req: dict):
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
-
-
