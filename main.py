@@ -509,7 +509,7 @@ async def generate_ai_review(req: dict):
         review += " " + random.choice(outros)
         
         return {"review": review}
-=======
+
     intros = [
         f"I recently visited {b_name} and it was a wonderful experience.",
         f"Five stars for {b_name}!",
@@ -536,7 +536,6 @@ async def generate_ai_review(req: dict):
     review += " " + random.choice(outros)
     
     return {"review": review}
->>>>>>> 27556739546df7581e81e2d92a6d0a816ccdbe07
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
