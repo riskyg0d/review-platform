@@ -529,12 +529,41 @@ async def submit_review(req: ReviewSubmit):
     return {"status": "success"}
 
 @app.post("/api/ai/generate-review")
-@app.post("/api/ai/generate-review")
 async def generate_ai_review(req: dict):
     b_name = req.get('business_name', 'this establishment')
     category = req.get('category', 'Restaurant / Cafe')
     tags = req.get('tags', [])
     lang = req.get('lang', 'en')
+    
+    cat_intros = {
+        "Restaurant / Cafe": {
+            "en": [
+                f"I recently visited {b_name} and the food and ambiance were incredible.",
+                f"Had a wonderful dining experience at {b_name} today with outstanding flavors.",
+                f"Absolute favorite spot in town! {b_name} never fails to impress with great quality.",
+                f"Came to {b_name} for lunch and everything from the service to the dishes was top-notch.",
+                f"The culinary delights at {b_name} are truly unmatched. Highly recommend trying their specials.",
+                f"A fantastic evening spent at {b_name}. Cozy atmosphere and delicious food.",
+                f"Every dish we ordered at {b_name} was cooked to perfection and served promptly.",
+                f"Superb hospitality and mouthwatering dishes make {b_name} a must-visit destination.",
+                f"Impressed by the cleanliness and exceptional taste at {b_name}. Will definitely return.",
+                f"Dining at {b_name} was an absolute treat for the taste buds. Truly wonderful."
+            ],
+            "hi": [
+                f"मैंने हाल ही में {b_name} का दौरा किया और यहाँ का खाना और माहौल शानदार था।",
+                f"आज {b_name} में भोजन का अनुभव बहुत अच्छा रहा, बेहतरीन स्वाद।",
+                f"शहर में मेरी पसंदीदा जगह! {b_name} हमेशा उच्च गुणवत्ता से प्रभावित करता है।",
+                f"दोपहर के भोजन के लिए {b_name} आया और सेवा से लेकर व्यंजनों तक सब कुछ बेहतरीन था。",
+                f"{b_name} में पाक कला वास्तव में बेजोड़ है।"
+            ],
+            "mr": [
+                f"मी अलीकडेच {b_name} ला भेट दिली आणि येथील अन्न आणि वातावरण अप्रतिम होते.",
+                f"आज {b_name} मध्ये जेवणाचा अनुभव खूप छान होता, उत्तम चव.",
+                f"शहरातील माझे आवडते ठिकाण! {b_name} नेहमीच उत्तम गुणवत्ता देते.",
+                f"दुपारच्या जेवणासाठी {b_name} ला आलो आणि सर्व काही उत्तम होते."
+            ]
+        }
+    }
 
     cat_dict = cat_intros.get(category, cat_intros.get("Restaurant / Cafe", {}))
     intros = cat_dict.get(lang, cat_dict.get("en", [f"I recently visited {b_name} and had a great experience."]))
