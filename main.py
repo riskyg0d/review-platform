@@ -290,9 +290,7 @@ REVIEW_INTROS = {
 }
 
 TAG_LEADS = {
-    "en": "Highlights: {tags}.",
-    "hi": "मुख्य विशेषताएँ: {tags}।",
-    "mr": "प्रमुख वैशिष्ट्ये: {tags}.",
+    "en": "{tags}.",
 }
 
 CLOSINGS = {
