@@ -240,14 +240,19 @@
                 }
                 btn.textContent = displayTag;
                 btn.className = "px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white font-medium hover:border-red-500 transition-all";
-                btn.onclick = () => {
-                    if(selectedNegTags.includes(tag)) {
-                        selectedNegTags = selectedNegTags.filter(t => t !== tag);
-                        btn.classList.remove('bg-red-600', 'text-white');
+btn.onclick = () => {
+                    if(selectedTags.includes(tag)) {
+                        selectedTags = selectedTags.filter(t => t !== tag);
+                        btn.classList.remove('bg-blue-600', 'text-white');
+                        btn.classList.add('text-slate-800');
                     } else {
-                        if(selectedNegTags.length >= MAX_TAGS) return;
-                        selectedNegTags.push(tag);
-                        btn.classList.add('bg-red-600', 'text-white');
+                        if(selectedTags.length >= MAX_TAGS) {
+                            alert(currentLang === 'hi' ? "आप अधिकतम 5 टैग चुन सकते हैं।" : (currentLang === 'mr' ? "तुम्ही जास्तीत जास्त ५ टॅग निवडू शकता." : "You can select a maximum of 5 tags."));
+                            return;
+                        }
+                        selectedTags.push(tag);
+                        btn.classList.add('bg-blue-600', 'text-white');
+                        btn.classList.remove('text-slate-800');
                     }
                 };
                 negContainer.appendChild(btn);
