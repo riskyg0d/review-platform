@@ -213,7 +213,7 @@
             }
         };
 
-        function renderTags() {
+function renderTags() {
             const containerId = currentRating >= 3 ? 'tags-container' : 'neg-tags-container';
             const tagsContainer = document.getElementById(containerId);
             
@@ -223,12 +223,18 @@
             selectedTags = [];
             
             let rawTags = currentRating >= 3 ? businessData.positive_tags : businessData.negative_tags;
-            let tagsToUse = rawTags ? rawTags.split(',').map(t => t.trim()).filter(Boolean) : [];
+            let tagsToUse = [];
+
+            if (Array.isArray(rawTags)) {
+                tagsToUse = rawTags.map(t => String(t).trim()).filter(Boolean);
+            } else if (typeof rawTags === 'string') {
+                tagsToUse = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+            }
 
             tagsToUse.forEach(tag => {
                 const btn = document.createElement('button');
                 let displayTag = tag;
-                if (currentLang !== 'en' && window.tagTrans[currentLang] && window.tagTrans[currentLang][tag]) {
+                if (currentLang !== 'en' && window.tagTrans && window.tagTrans[currentLang] && window.tagTrans[currentLang][tag]) {
                     displayTag = window.tagTrans[currentLang][tag];
                 }
 
