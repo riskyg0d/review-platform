@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Owner Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen">
     <nav class="bg-white border-b px-8 py-4 flex justify-between items-center shadow-sm">
@@ -54,12 +55,40 @@
             </div>
         </div>
         
-        <div class="lg:col-span-2">
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Analytics Chart Section (Top) -->
+            <div id="chart-section-card" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-slate-800">Review Growth Analytics</h2>
+                    <span class="text-xs text-slate-400">Cumulative reviews since subscription</span>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="reviewGrowthChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Reviews Section (Scroll past chart) -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-h-[500px]">
-                <div class="flex justify-between items-center mb-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <h2 class="text-lg font-semibold text-slate-800" id="current-biz-title">Select a business</h2>
                     <a id="public-link-btn" href="#" target="_blank" class="hidden text-sm bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200">Open Customer Form ↗</a>
                 </div>
+
+                <!-- Date Filter Controls -->
+                <div id="date-filter-container" class="hidden flex flex-wrap items-center gap-3 mb-6 p-3 bg-slate-50 border rounded-xl text-xs">
+                    <span class="font-semibold text-slate-700">Filter by Date:</span>
+                    <div class="flex items-center space-x-1">
+                        <label class="text-slate-500">From:</label>
+                        <input type="date" id="filter-start-date" class="border p-1.5 rounded-lg bg-white">
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <label class="text-slate-500">To:</label>
+                        <input type="date" id="filter-end-date" class="border p-1.5 rounded-lg bg-white">
+                    </div>
+                    <button onclick="applyDateFilter()" class="bg-slate-900 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-slate-800">Apply Filter</button>
+                    <button onclick="resetDateFilter()" class="text-slate-600 hover:text-slate-900 underline px-1">Reset</button>
+                </div>
+
                 <div id="reviews-list" class="space-y-4 text-slate-400 text-center py-12 text-sm">Select a business from the left.</div>
             </div>
         </div>
@@ -78,6 +107,9 @@
     </div>
     <script>
         let currentSelectedBusiness = null;
+        let allBusinessReviews = [];
+        let reviewChartInstance = null;
+
         async function loadBusinesses() {
             const res = await fetch('/api/owner/businesses');
             if(res.status === 401) { window.location.href = "/"; return; }
@@ -112,6 +144,8 @@
             }
             
             document.getElementById('tag-manager-card').classList.remove('hidden');
+            document.getElementById('chart-section-card').classList.remove('hidden');
+            document.getElementById('date-filter-container').classList.remove('hidden');
             
             const activePos = b.positive_tags || [];
             const activeNeg = b.negative_tags || [];
@@ -124,22 +158,105 @@
             fetch(`/api/owner/reviews/${b.id}`)
                 .then(res => res.json())
                 .then(data => {
-                    const list = document.getElementById('reviews-list');
-                    if (data.length === 0) {
-                        list.innerHTML = '<div class="text-slate-400 text-center py-12 text-sm">No reviews yet.</div>';
-                        return;
-                    }
-                    list.innerHTML = data.map(r => `
-                        <div class="p-4 border rounded-xl bg-slate-50 text-left">
-                            <div class="flex justify-between mb-2">
-                                <span class="font-semibold">${r.customer_name}</span>
-                                <span class="text-amber-500">${'★'.repeat(r.rating)}</span>
-                            </div>
-                            <div class="text-xs mb-2 text-slate-500">Tags: ${r.tags}</div>
-                            ${r.rating < 3 ? `<div class="bg-red-50 text-red-800 text-sm p-3 rounded">Private Feedback / Areas of Improvement: ${r.feedback_text}</div>` : `<div class="bg-emerald-50 text-emerald-800 text-sm p-3 rounded">AI Draft: ${r.ai_draft}</div>`}
-                        </div>
-                    `).join('');
+                    allBusinessReviews = data;
+                    renderReviewsList(allBusinessReviews);
+                    renderGrowthChart(allBusinessReviews);
                 });
+        }
+
+        function renderReviewsList(reviews) {
+            const list = document.getElementById('reviews-list');
+            if (reviews.length === 0) {
+                list.innerHTML = '<div class="text-slate-400 text-center py-12 text-sm">No reviews match the selected date filter.</div>';
+                return;
+            }
+            list.innerHTML = reviews.map(r => `
+                <div class="p-4 border rounded-xl bg-slate-50 text-left">
+                    <div class="flex justify-between mb-1">
+                        <span class="font-semibold">${r.customer_name}</span>
+                        <span class="text-amber-500">${'★'.repeat(r.rating)}</span>
+                    </div>
+                    <div class="text-[11px] text-slate-400 mb-2">Generated on: ${r.timestamp}</div>
+                    <div class="text-xs mb-2 text-slate-500">Tags: ${r.tags}</div>
+                    ${r.rating < 3 ? `<div class="bg-red-50 text-red-800 text-sm p-3 rounded">Private Feedback / Areas of Improvement: ${r.feedback_text}</div>` : `<div class="bg-emerald-50 text-emerald-800 text-sm p-3 rounded">AI Draft: ${r.ai_draft}</div>`}
+                </div>
+            `).join('');
+        }
+
+        function renderGrowthChart(reviews) {
+            const ctx = document.getElementById('reviewGrowthChart').getContext('2d');
+            
+            const sorted = [...reviews].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            let dateCounts = {};
+            sorted.forEach(r => {
+                const dateOnly = r.timestamp.split(' ')[0];
+                dateCounts[dateOnly] = (dateCounts[dateOnly] || 0) + 1;
+            });
+
+            const labels = Object.keys(dateCounts);
+            let cumulative = 0;
+            const cumulativeData = labels.map(date => {
+                cumulative += dateCounts[date];
+                return cumulative;
+            });
+
+            if (reviewChartInstance) {
+                reviewChartInstance.destroy();
+            }
+
+            reviewChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Today'],
+                    datasets: [{
+                        label: 'Cumulative Reviews Generated',
+                        data: cumulativeData.length > 0 ? cumulativeData : [0],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function applyDateFilter() {
+            const startDateStr = document.getElementById('filter-start-date').value;
+            const endDateStr = document.getElementById('filter-end-date').value;
+
+            let filtered = allBusinessReviews;
+
+            if (startDateStr) {
+                const startDate = new Date(startDateStr);
+                startDate.setHours(0, 0, 0, 0);
+                filtered = filtered.filter(r => new Date(r.timestamp) >= startDate);
+            }
+
+            if (endDateStr) {
+                const endDate = new Date(endDateStr);
+                endDate.setHours(23, 59, 59, 999);
+                filtered = filtered.filter(r => new Date(r.timestamp) <= endDate);
+            }
+
+            renderReviewsList(filtered);
+        }
+
+        function resetDateFilter() {
+            document.getElementById('filter-start-date').value = '';
+            document.getElementById('filter-end-date').value = '';
+            renderReviewsList(allBusinessReviews);
         }
 
         function handleCustomTagInput(type) {
@@ -195,8 +312,17 @@
         }
 
         function saveTagSelection() {
+            const pos = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
+            const neg = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
+            if(pos.length === 0 || neg.length === 0) {
+                alert("Please select at least some tags.");
+                return;
+            }
+            saveTagsExplicit(pos, neg);
+        }
+
+        async function saveTagsExplicit(positive_tags, negative_tags) {
             if(!currentSelectedBusiness) return;
-            
             let pos = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
             let customPos = document.getElementById('custom-pos-input').value.split(',').map(t => t.trim()).filter(Boolean);
             pos = Array.from(new Set([...pos, ...customPos]));
@@ -204,27 +330,15 @@
             let neg = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
             let customNeg = document.getElementById('custom-neg-input').value.split(',').map(t => t.trim()).filter(Boolean);
             neg = Array.from(new Set([...neg, ...customNeg]));
-
-            if(pos.length > 5 || neg.length > 5) {
-                alert("You can only have a maximum of 5 active tags per category.");
-                return;
-            }
-
-            saveTagsExplicit(pos, neg);
-        }
-
-        async function saveTagsExplicit(positive_tags, negative_tags) {
+            
             const res = await fetch('/api/owner/businesses/tags', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({business_id: currentSelectedBusiness.id, positive_tags, negative_tags})
+                body: JSON.stringify({business_id: currentSelectedBusiness.id, positive_tags: pos, negative_tags: neg})
             });
             if(res.ok) {
                 alert("Tags updated successfully!");
-                currentSelectedBusiness.positive_tags = positive_tags;
-                currentSelectedBusiness.negative_tags = negative_tags;
-                document.getElementById('custom-pos-input').value = positive_tags.join(', ');
-                document.getElementById('custom-neg-input').value = negative_tags.join(', ');
-                renderTagCheckboxes(currentSelectedBusiness);
+                currentSelectedBusiness.positive_tags = pos;
+                currentSelectedBusiness.negative_tags = neg;
             } else {
                 alert("Error saving tags");
             }
@@ -249,9 +363,6 @@
             const name = document.getElementById('new-b-name').value;
             const category = document.getElementById('new-b-category').value;
             const link = document.getElementById('new-b-link').value;
-            if(!name || name.length<2) return alert("Enter a valid business name");
-            if(!link || !link.startsWith("https://www.google.com/")) return alert("Enter a valid Google Maps URL");
-            if(!category) return alert("Select a category");
             await fetch('/api/owner/businesses', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({name, category, google_link: link})
