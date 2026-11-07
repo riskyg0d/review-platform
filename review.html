@@ -29,10 +29,19 @@
                 <button data-value="4" class="star-btn text-3xl text-slate-300">★</button>
                 <button data-value="5" class="star-btn text-3xl text-slate-300">★</button>
             </div>
-            <div class="mb-6">
+            
+            <!-- Positive Tags Section (4-5 stars & 3 stars) -->
+            <div class="mb-5" id="pos-tags-wrapper">
                 <label id="ui-tags-label" class="block text-xs font-semibold mb-2">What went well? (Select up to 5 tags)</label>
-                <div id="tags-container" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1"></div>
+                <div id="tags-container" class="flex flex-wrap gap-2 max-h-36 overflow-y-auto pr-1"></div>
             </div>
+
+            <!-- Areas of Improvement Section (3 stars & below) -->
+            <div class="mb-6" id="neg-tags-wrapper" style="display: none;">
+                <label id="ui-neg-tags-label" class="block text-xs font-semibold mb-2 text-red-600">Areas of Improvement (Select up to 5 tags)</label>
+                <div id="neg-tags-container" class="flex flex-wrap gap-2 max-h-36 overflow-y-auto pr-1"></div>
+            </div>
+
             <button id="proceed-btn" disabled class="w-full bg-blue-600 text-white py-3 rounded-xl disabled:bg-slate-200 font-medium">Continue</button>
         </div>
         <div id="step-ai-review" class="hidden bg-white rounded-2xl shadow-sm border p-6">
@@ -46,7 +55,7 @@
         <div id="step-feedback" class="hidden bg-white rounded-2xl shadow-sm border p-6">
             <h2 id="ui-private-title" class="text-lg font-semibold text-center mb-4">Areas of Improvement</h2>
             <p id="ui-private-desc" class="text-xs text-slate-500 mb-2">Please select up to 5 tags below so we can improve:</p>
-            <div id="neg-tags-container" class="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto pr-1"></div>
+            <div id="neg-tags-container-strict" class="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto pr-1"></div>
             <textarea id="private-feedback-text" rows="2" class="w-full p-3 border rounded-xl mb-4 text-xs" placeholder="Additional details (optional)..."></textarea>
             <button id="submit-feedback-btn" class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium mb-3">Post Review & Send Feedback</button>
         </div>
@@ -64,6 +73,7 @@
         let businessData = {};
         let currentRating = 0;
         let selectedTags = [];
+        let selectedNegTags = [];
         let currentLang = 'en';
         const MAX_TAGS = 5;
 
@@ -72,6 +82,7 @@
                 title: "How was your experience?",
                 nameLabel: "Your Name",
                 tagsLabel: "What went well? (Select up to 5 tags)",
+                negTagsLabel: "Areas of Improvement (Select up to 5 tags)",
                 continueBtn: "Continue",
                 readyTitle: "Review Ready for Google",
                 postGoogle: "Post on Google Review",
@@ -85,6 +96,7 @@
                 title: "आपका अनुभव कैसा रहा?",
                 nameLabel: "आपका नाम",
                 tagsLabel: "क्या अच्छा रहा? (अधिकतम 5 टैग चुनें)",
+                negTagsLabel: "सुधार के क्षेत्र (अधिकतम 5 टैग चुनें)",
                 continueBtn: "आगे बढ़ें",
                 readyTitle: "गूगल के लिए समीक्षा तैयार है",
                 postGoogle: "गूगल समीक्षा पर पोस्ट करें",
@@ -98,6 +110,7 @@
                 title: "तुमचा अनुभव कसा होता?",
                 nameLabel: "तुमचे नाव",
                 tagsLabel: "काय चांगले झाले? (जास्तीत जास्त ५ टॅग निवडा)",
+                negTagsLabel: "सुधारणेचे क्षेत्र (जास्तीत जास्त ५ टॅग निवडा)",
                 continueBtn: "पुढे जा",
                 readyTitle: "गुगल रिव्ह्यू तयार आहे",
                 postGoogle: "गुगल रिव्ह्यू वर पोस्ट करा",
@@ -115,6 +128,7 @@
             document.getElementById('ui-title').textContent = t.title;
             document.getElementById('ui-name-label').textContent = t.nameLabel;
             document.getElementById('ui-tags-label').textContent = t.tagsLabel;
+            document.getElementById('ui-neg-tags-label').textContent = t.negTagsLabel;
             document.getElementById('proceed-btn').textContent = t.continueBtn;
             document.getElementById('ui-ready-title').textContent = t.readyTitle;
             document.getElementById('post-google-btn').textContent = t.postGoogle;
@@ -144,17 +158,45 @@
                 `;
             });
 
+        window.tagTrans = {
+            hi: {
+                "Great Food": "बढ़िया खाना", "Fast Service": "तेज सेवा", "Clean": "साफ-सुथरा", "Friendly Staff": "मिलनसार स्टाफ", "Good Ambiance": "अच्छा माहौल", "Value for Money": "पैसा वसूल", "Fresh Ingredients": "ताजा सामग्री", "Tasty": "स्वादिष्ट", "Cozy Vibe": "आरामदायक माहौल", "Great Portions": "बढ़िया मात्रा", "Authentic Taste": "असली स्वाद", "Hygienic": "स्वच्छ", "Prompt Delivery": "तुरंत डिलीवरी", "Well Prepared": "अच्छी तरह तैयार", "Scenic View": "सुंदर दृश्य",
+                "Slow Service": "धीमी सेवा", "Rude Staff": "रूखा स्टाफ", "Cold Food": "ठंडा खाना", "Dirty Tables": "गंदी टेबल", "Overpriced": "महंगा", "Small Portions": "कम मात्रा", "Noisy": "शोरगुल", "Bland Taste": "बेस्वाद", "Poor Quality": "खराब गुणवत्ता", "Unhygienic": "अस्वच्छ", "Stale Food": "बासी खाना", "Wrong Order": "गलत ऑर्डर", "Uncooked": "कच्चा", "Bad Smell": "बुरी गंध", "Cramped Seating": "तंग बैठने की जगह"
+            },
+            mr: {
+                "Great Food": "उत्कृष्ट अन्न", "Fast Service": "जलद सेवा", "Clean": "स्वच्छ", "Friendly Staff": "अनुकूल कर्मचारी", "Good Ambiance": "चांगले वातावरण", "Value for Money": "पैशाचे मूल्य", "Fresh Ingredients": "ताज्या घटक", "Tasty": "चवदार", "Cozy Vibe": "सुखद वातावरण", "Great Portions": "उत्तम प्रमाण", "Authentic Taste": "अस्सल चव", "Hygienic": "आरोग्यदायी", "Prompt Delivery": "तातडीने डिलिव्हरी", "Well Prepared": "छान तयार केलेले", "Scenic View": "निसर्गरम्य दृश्य",
+                "Slow Service": "हळू सेवा", "Rude Staff": "उद्धट कर्मचारी", "Cold Food": "थंड अन्न", "Dirty Tables": "मळके टेबल", "Overpriced": "महाग", "Small Portions": "कमी प्रमाण", "Noisy": "गोंगाट", "Bland Taste": "आळणी चव", "Poor Quality": "वाईट दर्जा", "Unhygienic": "अस्वच्छ", "Stale Food": "शिळे अन्न", "Wrong Order": "चुकीची ऑर्डर", "Uncooked": "न शिजलेले", "Bad Smell": "वाईट वास", "Cramped Seating": "कोंदट बसण्याची जागा"
+            }
+        };
+
         const starBtns = document.querySelectorAll('.star-btn');
         starBtns.forEach((btn, idx) => {
             btn.addEventListener('click', () => {
                 currentRating = idx + 1;
                 starBtns.forEach((b, i) => b.classList.toggle('text-amber-400', i < currentRating));
                 starBtns.forEach((b, i) => b.classList.toggle('text-slate-300', i >= currentRating));
-                renderTags();
+                
+                const negWrapper = document.getElementById('neg-tags-wrapper');
+                const posWrapper = document.getElementById('pos-tags-wrapper');
+
+                if (currentRating === 3) {
+                    posWrapper.style.display = 'block';
+                    negWrapper.style.display = 'block';
+                    renderTags();
+                } else if (currentRating >= 4) {
+                    posWrapper.style.display = 'block';
+                    negWrapper.style.display = 'none';
+                    renderTags();
+                } else {
+                    posWrapper.style.display = 'none';
+                    negWrapper.style.display = 'none';
+                }
+                
                 document.getElementById('proceed-btn').disabled = false;
             });
         });
 
+<<<<<<< Updated upstream
         // Simple translation dictionaries injected via python or client side map
         function translateTag(tag) {
             if (currentLang === 'en') return tag;
@@ -219,9 +261,18 @@ function renderTags() {
             
             document.getElementById('tags-container').innerHTML = '';
             document.getElementById('neg-tags-container').innerHTML = '';
+=======
+        function renderTags() {
+            const posContainer = document.getElementById('tags-container');
+            const negContainer = document.getElementById('neg-tags-container');
+            posContainer.innerHTML = '';
+            negContainer.innerHTML = '';
+>>>>>>> Stashed changes
             
             selectedTags = [];
+            selectedNegTags = [];
             
+<<<<<<< Updated upstream
             let rawTags = currentRating >= 3 ? businessData.positive_tags : businessData.negative_tags;
             let tagsToUse = [];
 
@@ -230,14 +281,20 @@ function renderTags() {
             } else if (typeof rawTags === 'string') {
                 tagsToUse = rawTags.split(',').map(t => t.trim()).filter(Boolean);
             }
+=======
+            let rawPos = businessData.positive_tags || [];
+            let rawNeg = businessData.negative_tags || [];
+>>>>>>> Stashed changes
 
-            tagsToUse.forEach(tag => {
+            let posToUse = Array.isArray(rawPos) ? rawPos.map(t => String(t).trim()).filter(Boolean) : (typeof rawPos === 'string' ? rawPos.split(',').map(t => t.trim()).filter(Boolean) : []);
+            let negToUse = Array.isArray(rawNeg) ? rawNeg.map(t => String(t).trim()).filter(Boolean) : (typeof rawNeg === 'string' ? rawNeg.split(',').map(t => t.trim()).filter(Boolean) : []);
+
+            posToUse.forEach(tag => {
                 const btn = document.createElement('button');
                 let displayTag = tag;
                 if (currentLang !== 'en' && window.tagTrans && window.tagTrans[currentLang] && window.tagTrans[currentLang][tag]) {
                     displayTag = window.tagTrans[currentLang][tag];
                 }
-
                 btn.textContent = displayTag;
                 btn.className = "px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white font-medium hover:border-blue-500 transition-all";
                 btn.onclick = () => {
@@ -245,22 +302,63 @@ function renderTags() {
                         selectedTags = selectedTags.filter(t => t !== tag);
                         btn.classList.remove('bg-blue-600', 'text-white');
                     } else {
-                        if(selectedTags.length >= MAX_TAGS) {
-                            alert(currentLang === 'hi' ? "आप अधिकतम 5 टैग चुन सकते हैं।" : (currentLang === 'mr' ? "तुम्ही जास्तीत जास्त ५ टॅग निवडू शकता." : "You can select a maximum of 5 tags."));
-                            return;
-                        }
+                        if(selectedTags.length >= MAX_TAGS) return;
                         selectedTags.push(tag);
                         btn.classList.add('bg-blue-600', 'text-white');
                     }
                 };
-                tagsContainer.appendChild(btn);
+                posContainer.appendChild(btn);
+            });
+
+            negToUse.forEach(tag => {
+                const btn = document.createElement('button');
+                let displayTag = tag;
+                if (currentLang !== 'en' && window.tagTrans[currentLang] && window.tagTrans[currentLang][tag]) {
+                    displayTag = window.tagTrans[currentLang][tag];
+                }
+                btn.textContent = displayTag;
+                btn.className = "px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white font-medium hover:border-red-500 transition-all";
+                btn.onclick = () => {
+                    if(selectedNegTags.includes(tag)) {
+                        selectedNegTags = selectedNegTags.filter(t => t !== tag);
+                        btn.classList.remove('bg-red-600', 'text-white');
+                    } else {
+                        if(selectedNegTags.length >= MAX_TAGS) return;
+                        selectedNegTags.push(tag);
+                        btn.classList.add('bg-red-600', 'text-white');
+                    }
+                };
+                negContainer.appendChild(btn);
             });
         }
 
         document.getElementById('proceed-btn').addEventListener('click', () => {
+            const customerName = document.getElementById('customer-name').value.trim();
+            if(!customerName) {
+                alert("Please enter your name.");
+                return;
+            }
+
             document.getElementById('step-rating').classList.add('hidden');
+            
             if (currentRating >= 3) {
                 document.getElementById('step-ai-review').classList.remove('hidden');
+                
+                // If 3 stars, silently save selected improvement tags as private feedback
+                if (currentRating === 3 && selectedNegTags.length > 0) {
+                    fetch('/api/reviews/submit', {
+                        method: 'POST', headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({
+                            business_link: uniqueLink,
+                            customer_name: customerName,
+                            rating: currentRating, 
+                            tags: selectedNegTags, 
+                            feedback_text: `3-Star Areas of Improvement: ${selectedNegTags.join(', ')}`, 
+                            ai_draft: ""
+                        })
+                    });
+                }
+
                 fetch('/api/ai/generate-review', {
                     method: 'POST', headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({
@@ -268,7 +366,7 @@ function renderTags() {
                         tags: selectedTags, 
                         business_name: businessData.name, 
                         category: businessData.category,
-                        customer_name: document.getElementById('customer-name').value,
+                        customer_name: customerName,
                         lang: currentLang
                     })
                 }).then(res=>res.json()).then(data => {
@@ -278,7 +376,28 @@ function renderTags() {
                 });
             } else {
                 document.getElementById('step-feedback').classList.remove('hidden');
-                renderTags();
+                // Render negative tags for 1-2 stars strict feedback step
+                const negContainerStrict = document.getElementById('neg-tags-container-strict');
+                negContainerStrict.innerHTML = '';
+                selectedTags = [];
+                let rawNeg = businessData.negative_tags || [];
+                let negToUse = Array.isArray(rawNeg) ? rawNeg.map(t => String(t).trim()).filter(Boolean) : (typeof rawNeg === 'string' ? rawNeg.split(',').map(t => t.trim()).filter(Boolean) : []);
+                negToUse.forEach(tag => {
+                    const btn = document.createElement('button');
+                    btn.textContent = tag;
+                    btn.className = "px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white font-medium hover:border-red-500 transition-all";
+                    btn.onclick = () => {
+                        if(selectedTags.includes(tag)) {
+                            selectedTags = selectedTags.filter(t => t !== tag);
+                            btn.classList.remove('bg-red-600', 'text-white');
+                        } else {
+                            if(selectedTags.length >= MAX_TAGS) return;
+                            selectedTags.push(tag);
+                            btn.classList.add('bg-red-600', 'text-white');
+                        }
+                    };
+                    negContainerStrict.appendChild(btn);
+                });
             }
         });
 
@@ -288,7 +407,7 @@ function renderTags() {
                 body: JSON.stringify({
                     business_link: uniqueLink,
                     customer_name: document.getElementById('customer-name').value,
-                    rating: currentRating, tags: selectedTags, feedback_text: feedbackText, ai_draft: aiDraft
+                    rating: currentRating, tags: currentRating >= 3 ? selectedTags : selectedTags, feedback_text: feedbackText, ai_draft: aiDraft
                 })
             });
         }
@@ -303,9 +422,8 @@ function renderTags() {
 
         document.getElementById('submit-feedback-btn').addEventListener('click', async () => {
             const extraText = document.getElementById('private-feedback-text').value;
-            
-            // For 1 and 2 stars: Save tags and private feedback strictly for management
-            await saveReview(extraText, "");
+            const combinedFeedback = `Selected Areas to Improve: ${selectedTags.join(', ')} | Notes: ${extraText}`;
+            await saveReview(combinedFeedback, "");
             document.getElementById('step-feedback').classList.add('hidden');
             document.getElementById('step-success').classList.remove('hidden');
         });

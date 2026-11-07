@@ -154,7 +154,8 @@
                     `).join('');
                 });
         }
-         
+        
+        async 
         function limitCheck(checkbox, className, maxLimit) {
             const checkedCount = document.querySelectorAll('.' + className + ':checked').length;
             if (checkedCount > maxLimit) {
