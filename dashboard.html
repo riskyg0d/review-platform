@@ -131,7 +131,10 @@
                 </label>
             `).join('');
             
-            document.getElementById('custom-pos-input').value = activePos.join(', '); document.getElementById('custom-neg-input').value = activeNeg.join(', '); fetch(`/api/owner/reviews/${b.id}`)
+            document.getElementById('custom-pos-input').value = activePos.join(', ');
+            document.getElementById('custom-neg-input').value = activeNeg.join(', ');
+            
+            fetch(`/api/owner/reviews/${b.id}`)
                 .then(res => res.json())
                 .then(data => {
                     const list = document.getElementById('reviews-list');
