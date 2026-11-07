@@ -290,9 +290,9 @@ REVIEW_INTROS = {
 }
 
 TAG_LEADS = {
-    "en": "{tags}.",
-    "hi": "{tags}।",
-    "mr": "{tags}.",
+    "en": "Highlights: {tags}.",
+    "hi": "मुख्य विशेषताएँ: {tags}।",
+    "mr": "प्रमुख वैशिष्ट्ये: {tags}.",
 }
 
 CLOSINGS = {
@@ -704,6 +704,22 @@ async def toggle_business(req: BusinessToggle, auth_token: Optional[str] = Cooki
         await db.execute("UPDATE businesses SET status = ? WHERE id = ?", (req.status, req.business_id))
         await db.commit()
     return {"message": f"Business {req.status}"}
+
+@app.delete("/api/admin/businesses/{business_id}")
+async def delete_business(business_id: int, auth_token: Optional[str] = Cookie(None)):
+    user = get_current_user(auth_token)
+    if not user or user["role"] != "admin": raise HTTPException(status_code=401, detail="Unauthorized")
+
+    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+        async with db.execute("SELECT id FROM businesses WHERE id = ?", (business_id,)) as cursor:
+            if not await cursor.fetchone():
+                raise HTTPException(status_code=404, detail="Business not found")
+
+        # SQLite foreign keys are not enforced here, so remove the child reviews explicitly
+        await db.execute("DELETE FROM reviews WHERE business_id = ?", (business_id,))
+        await db.execute("DELETE FROM businesses WHERE id = ?", (business_id,))
+        await db.commit()
+    return {"message": "Business and its reviews deleted"}
 
 @app.get("/api/admin/reviews")
 async def get_all_reviews(auth_token: Optional[str] = Cookie(None)):

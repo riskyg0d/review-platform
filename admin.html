@@ -25,6 +25,7 @@
             </div>
         </div>
     </div>
+
     <!-- Change Password Modal -->
     <div id="pwd-modal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
         <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-lg border border-slate-200">
@@ -42,30 +43,59 @@
             </div>
         </div>
     </div>
+
+    <!-- Delete Business Modal -->
+    <div id="delete-modal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-lg border border-slate-200">
+            <h2 class="text-xl font-bold mb-1 text-red-700">Delete Business</h2>
+            <p class="text-sm text-slate-600 mb-2">You are about to permanently delete:</p>
+            <p id="delete-business-name" class="font-bold text-slate-900 mb-3 break-words"></p>
+            <p class="text-sm text-slate-500 mb-6">This also deletes all of its reviews and its public review link. This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeDeleteModal()" class="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all">Cancel</button>
+                <button id="confirm-delete-btn" onclick="confirmDelete()" class="px-5 py-2.5 text-sm font-medium bg-red-600 text-white rounded-xl hover:bg-red-700 shadow-sm transition-all">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let pendingDeleteId = null;
+
+        // Prevents HTML injection from business names, tags, feedback, etc.
+        function esc(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        let businessesCache = [];
+
         async function loadBusinesses() {
             const res = await fetch('/api/admin/businesses');
             if(res.status === 401) return window.location.href="/";
             const data = await res.json();
+            businessesCache = data;
             const list = document.getElementById('businesses-list');
             list.innerHTML = data.map(b => `
                 <div class="p-4 border rounded-xl flex justify-between items-center bg-slate-50 ${b.status === 'disabled' ? 'opacity-60' : ''}">
                     <div>
-                        <p class="font-bold text-slate-900">${b.name}</p>
-                        <p class="text-xs text-slate-500">Owner: ${b.owner_email}</p>
-                        <p class="text-xs mt-1 font-semibold ${b.status === 'approved' ? 'text-green-600' : (b.status === 'disabled' ? 'text-red-600' : 'text-amber-600')}">${b.status.toUpperCase()}</p>
+                        <p class="font-bold text-slate-900">${esc(b.name)}</p>
+                        <p class="text-xs text-slate-500">Owner: ${esc(b.owner_email)}</p>
+                        <p class="text-xs mt-1 font-semibold ${b.status === 'approved' ? 'text-green-600' : (b.status === 'disabled' ? 'text-red-600' : 'text-amber-600')}">${esc(b.status.toUpperCase())}</p>
                     </div>
                     <div class="flex flex-col space-y-2 text-right">
                         ${b.status === 'pending' ? `<button onclick="toggleStatus(${b.id}, 'approved')" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium">Approve</button>` : ''}
                         ${b.status === 'approved' ? `
                             <button onclick="toggleStatus(${b.id}, 'disabled')" class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded-lg text-xs font-medium border border-red-200 transition-all">Disable</button>
-                            <a href="/review/${b.unique_link}" target="_blank" class="text-blue-600 text-xs font-medium hover:underline">View Public Link ↗</a>
+                            <a href="/review/${encodeURIComponent(b.unique_link)}" target="_blank" class="text-blue-600 text-xs font-medium hover:underline">View Public Link ↗</a>
                         ` : ''}
                         ${b.status === 'disabled' ? `<button onclick="toggleStatus(${b.id}, 'approved')" class="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded-lg text-xs font-medium border border-green-200 transition-all">Enable</button>` : ''}
+                        <button onclick="openDeleteModal(${b.id})" class="bg-white text-red-600 hover:bg-red-600 hover:text-white px-3 py-1 rounded-lg text-xs font-medium border border-red-300 transition-all">Delete</button>
                     </div>
                 </div>
             `).join('');
         }
+
         async function loadReviews() {
             const res = await fetch('/api/admin/reviews');
             const data = await res.json();
@@ -73,26 +103,65 @@
             list.innerHTML = data.map(r => `
                 <div class="p-4 border rounded-xl bg-slate-50 text-sm text-slate-800">
                     <div class="flex justify-between font-bold mb-1">
-                        <span>[${r.business_name}] ${r.customer_name}</span>
-                        <span class="text-amber-500">${'★'.repeat(r.rating)}</span>
+                        <span>[${esc(r.business_name)}] ${esc(r.customer_name)}</span>
+                        <span class="text-amber-500">${'★'.repeat(Math.max(0, Math.min(5, Number(r.rating) || 0)))}</span>
                     </div>
-                    <p class="text-xs text-slate-500 mb-2">Tags: ${r.tags}</p>
-                    ${r.rating < 3 ? `<p class="text-red-700 bg-red-100 p-2 rounded">Private Feedback: ${r.feedback_text}</p>` : `<p class="text-green-700 bg-green-100 p-2 rounded">AI Draft: ${r.ai_draft}</p>`}
+                    <p class="text-xs text-slate-500 mb-2">Tags: ${esc(r.tags)}</p>
+                    ${r.rating < 3 ? `<p class="text-red-700 bg-red-100 p-2 rounded">Private Feedback: ${esc(r.feedback_text)}</p>` : `<p class="text-green-700 bg-green-100 p-2 rounded">AI Draft: ${esc(r.ai_draft)}</p>`}
                 </div>
             `).join('');
         }
+
         async function toggleStatus(id, newStatus) {
             await fetch('/api/admin/businesses/toggle', {
                 method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({business_id: id, status: newStatus})
             });
             loadBusinesses();
         }
+
+        function openDeleteModal(id) {
+            const biz = businessesCache.find(b => b.id === id);
+            if (!biz) return;
+            pendingDeleteId = id;
+            document.getElementById('delete-business-name').textContent = biz.name;
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            pendingDeleteId = null;
+            document.getElementById('delete-modal').classList.add('hidden');
+        }
+
+        async function confirmDelete() {
+            if (pendingDeleteId === null) return;
+            const btn = document.getElementById('confirm-delete-btn');
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+            try {
+                const res = await fetch(`/api/admin/businesses/${pendingDeleteId}`, { method: 'DELETE' });
+                if (res.status === 401) return window.location.href = "/";
+                if (res.ok) {
+                    closeDeleteModal();
+                    await Promise.all([loadBusinesses(), loadReviews()]);
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    alert(data.detail || "Failed to delete business");
+                }
+            } catch (e) {
+                alert("Network error while deleting business");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Delete Permanently';
+            }
+        }
+
         function closePwdModal() {
             document.getElementById('pwd-modal').classList.add('hidden');
             document.getElementById('old-pwd').value = '';
             document.getElementById('new-pwd').value = '';
             document.getElementById('confirm-pwd').value = '';
         }
+
         async function changePassword() {
             const oldPwd = document.getElementById('old-pwd').value;
             const newPwd = document.getElementById('new-pwd').value;
@@ -111,10 +180,12 @@
                 alert(data.detail || "Error changing password");
             }
         }
+
         async function logout() {
             await fetch('/api/auth/logout', {method: 'POST'});
             window.location.href = "/";
         }
+
         loadBusinesses();
         loadReviews();
     </script>
