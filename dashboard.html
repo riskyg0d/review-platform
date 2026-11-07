@@ -249,6 +249,9 @@
             const name = document.getElementById('new-b-name').value;
             const category = document.getElementById('new-b-category').value;
             const link = document.getElementById('new-b-link').value;
+            if(!name || name.length<2) return alert("Enter a valid business name");
+            if(!link || !link.startsWith("https://www.google.com/")) return alert("Enter a valid Google Maps URL");
+            if(!category) return alert("Select a category");
             await fetch('/api/owner/businesses', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({name, category, google_link: link})
