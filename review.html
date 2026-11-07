@@ -36,9 +36,9 @@
                 <div id="tags-container" class="flex flex-wrap gap-2 max-h-36 overflow-y-auto pr-1"></div>
             </div>
 
-            <!-- Areas of Improvement Section (3 stars & below) -->
+            <!-- Areas of Improvement Section (3 stars only) -->
             <div class="mb-6" id="neg-tags-wrapper" style="display: none;">
-                <label id="ui-neg-tags-label" class="block text-xs font-semibold mb-2 text-red-600">Areas of Improvement (Select up to 5 tags)</label>
+                <label id="ui-neg-tags-label" class="block text-xs font-semibold mb-2 text-orange-600">Areas of Improvement (Select up to 5 tags)</label>
                 <div id="neg-tags-container" class="flex flex-wrap gap-2 max-h-36 overflow-y-auto pr-1"></div>
             </div>
 
@@ -53,7 +53,7 @@
             </div>
         </div>
         <div id="step-feedback" class="hidden bg-white rounded-2xl shadow-sm border p-6">
-            <h2 id="ui-private-title" class="text-lg font-semibold text-center mb-4">Areas of Improvement</h2>
+            <h2 id="ui-private-title" class="text-lg font-semibold text-center mb-4 text-red-600">Areas of Improvement</h2>
             <p id="ui-private-desc" class="text-xs text-slate-500 mb-2">Please select up to 5 tags below so we can improve:</p>
             <div id="neg-tags-container-strict" class="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto pr-1"></div>
             <textarea id="private-feedback-text" rows="2" class="w-full p-3 border rounded-xl mb-4 text-xs" placeholder="Additional details (optional)..."></textarea>
@@ -76,6 +76,60 @@
         let selectedNegTags = [];
         let currentLang = 'en';
         const MAX_TAGS = 5;
+
+        // Tag colors: green = positive (4-5 stars, and positives at 3), orange = 3-star improvements, red = 1-2 star improvements
+        const TAG_STYLES = {
+            green:  { hover: 'hover:border-green-500',  on: ['bg-green-600', 'text-white', 'border-green-600'] },
+            orange: { hover: 'hover:border-orange-500', on: ['bg-orange-500', 'text-white', 'border-orange-500'] },
+            red:    { hover: 'hover:border-red-500',    on: ['bg-red-600', 'text-white', 'border-red-600'] }
+        };
+        const TAG_OFF = ['bg-white', 'text-slate-800', 'border-slate-200'];
+
+        // Swaps (not stacks) the classes so the selected color always wins and the text stays readable
+        function applyTagState(btn, color, selected) {
+            const style = TAG_STYLES[color];
+            if (selected) {
+                btn.classList.remove(...TAG_OFF);
+                btn.classList.add(...style.on);
+            } else {
+                btn.classList.remove(...style.on);
+                btn.classList.add(...TAG_OFF);
+            }
+        }
+
+        // Builds a selectable tag button. `list` is the array that holds the selected tag values.
+        function createTagButton(tag, label, list, color) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = label;
+            btn.className = `px-3 py-1.5 border rounded-xl text-xs font-medium transition-all ${TAG_STYLES[color].hover}`;
+            applyTagState(btn, color, false);
+            btn.onclick = () => {
+                const idx = list.indexOf(tag);
+                if (idx > -1) {
+                    list.splice(idx, 1);
+                    applyTagState(btn, color, false);
+                } else {
+                    if (list.length >= MAX_TAGS) return;
+                    list.push(tag);
+                    applyTagState(btn, color, true);
+                }
+            };
+            return btn;
+        }
+
+        function toTagArray(raw) {
+            if (Array.isArray(raw)) return raw.map(t => String(t).trim()).filter(Boolean);
+            if (typeof raw === 'string') return raw.split(',').map(t => t.trim()).filter(Boolean);
+            return [];
+        }
+
+        function translateTag(tag) {
+            if (currentLang !== 'en' && window.tagTrans[currentLang] && window.tagTrans[currentLang][tag]) {
+                return window.tagTrans[currentLang][tag];
+            }
+            return tag;
+        }
 
         const i18n = {
             en: {
@@ -160,7 +214,7 @@
 
         window.tagTrans = {
             hi: {
-                "Great Food": "बढ़िया खाना", "Fast Service": "तेज सेवा", "Clean": "साफ-सुथरा", "Friendly Staff": "मिलनसार स्टाफ", "Good Ambiance": "अच्छा माहौल", "Value for Money": "पैसा वसूल", "Fresh Ingredients": "ताजा सामग्री", "Tasty": "स्वादिष्ट", "Cozy Vibe": "आरामदायक माहौल", "Great Portions": "बढ़िया मात्रा", "Authentic Taste": "असली स्वाद", "Hygienic": "स्वच्छ", "Prompt Delivery": "तुरंत डिलीवरी", "Well Prepared": "अच्छी तरह तैयार", "Scenic View": "सुंदर दृश्य",
+                "Great Food": "बढ़िया खाना", "Fast Service": "तेज सेवा", "Clean": "साफ-सुथरा", "Friendly Staff": "मिलनसार स्टाफ", "Good Ambiance": "अच्छा माहौल", "Value for Money": "पैसा वसूल", "Fresh Ingredients": "ताजा सामग्री", "Tasty": "स्वादिष्ट", "Cozy Vibe": "आरामदायक माहौल", "Great Portions": "बढ़िया मात्रा", "Authentic Taste": "असली स्वाद", "Hygienic": "स्वच्छ", "Prompt Delivery": "तुरंत डिलीवरी", "Well Prepared": "अच्छी तरह तैयार", "Scenic View": "सुंदर दृश्य",
                 "Slow Service": "धीमी सेवा", "Rude Staff": "रूखा स्टाफ", "Cold Food": "ठंडा खाना", "Dirty Tables": "गंदी टेबल", "Overpriced": "महंगा", "Small Portions": "कम मात्रा", "Noisy": "शोरगुल", "Bland Taste": "बेस्वाद", "Poor Quality": "खराब गुणवत्ता", "Unhygienic": "अस्वच्छ", "Stale Food": "बासी खाना", "Wrong Order": "गलत ऑर्डर", "Uncooked": "कच्चा", "Bad Smell": "बुरी गंध", "Cramped Seating": "तंग बैठने की जगह"
             },
             mr: {
@@ -205,52 +259,17 @@
             selectedTags = [];
             selectedNegTags = [];
             
-            let rawPos = businessData.positive_tags || [];
-            let rawNeg = businessData.negative_tags || [];
+            const posToUse = toTagArray(businessData.positive_tags);
+            const negToUse = toTagArray(businessData.negative_tags);
 
-            let posToUse = Array.isArray(rawPos) ? rawPos.map(t => String(t).trim()).filter(Boolean) : (typeof rawPos === 'string' ? rawPos.split(',').map(t => t.trim()).filter(Boolean) : []);
-            let negToUse = Array.isArray(rawNeg) ? rawNeg.map(t => String(t).trim()).filter(Boolean) : (typeof rawNeg === 'string' ? rawNeg.split(',').map(t => t.trim()).filter(Boolean) : []);
-
+            // Positive tags: always green
             posToUse.forEach(tag => {
-                const btn = document.createElement('button');
-                let displayTag = tag;
-                if (currentLang !== 'en' && window.tagTrans[currentLang] && window.tagTrans[currentLang][tag]) {
-                    displayTag = window.tagTrans[currentLang][tag];
-                }
-                btn.textContent = displayTag;
-                btn.className = "px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white font-medium hover:border-blue-500 transition-all";
-                btn.onclick = () => {
-                    if(selectedTags.includes(tag)) {
-                        selectedTags = selectedTags.filter(t => t !== tag);
-                        btn.classList.remove('bg-blue-600', 'text-white');
-                    } else {
-                        if(selectedTags.length >= MAX_TAGS) return;
-                        selectedTags.push(tag);
-                        btn.classList.add('bg-blue-600', 'text-white');
-                    }
-                };
-                posContainer.appendChild(btn);
+                posContainer.appendChild(createTagButton(tag, translateTag(tag), selectedTags, 'green'));
             });
 
+            // Improvement tags (only visible at 3 stars): orange
             negToUse.forEach(tag => {
-                const btn = document.createElement('button');
-                let displayTag = tag;
-                if (currentLang !== 'en' && window.tagTrans[currentLang] && window.tagTrans[currentLang][tag]) {
-                    displayTag = window.tagTrans[currentLang][tag];
-                }
-                btn.textContent = displayTag;
-                btn.className = "px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white font-medium hover:border-red-500 transition-all";
-                btn.onclick = () => {
-                    if(selectedNegTags.includes(tag)) {
-                        selectedNegTags = selectedNegTags.filter(t => t !== tag);
-                        btn.classList.remove('bg-red-600', 'text-white');
-                    } else {
-                        if(selectedNegTags.length >= MAX_TAGS) return;
-                        selectedNegTags.push(tag);
-                        btn.classList.add('bg-red-600', 'text-white');
-                    }
-                };
-                negContainer.appendChild(btn);
+                negContainer.appendChild(createTagButton(tag, translateTag(tag), selectedNegTags, 'orange'));
             });
         }
 
@@ -298,27 +317,12 @@
                 });
             } else {
                 document.getElementById('step-feedback').classList.remove('hidden');
-                // Render negative tags for 1-2 stars strict feedback step
+                // Render negative tags for 1-2 stars strict feedback step: red
                 const negContainerStrict = document.getElementById('neg-tags-container-strict');
                 negContainerStrict.innerHTML = '';
                 selectedTags = [];
-                let rawNeg = businessData.negative_tags || [];
-                let negToUse = Array.isArray(rawNeg) ? rawNeg.map(t => String(t).trim()).filter(Boolean) : (typeof rawNeg === 'string' ? rawNeg.split(',').map(t => t.trim()).filter(Boolean) : []);
-                negToUse.forEach(tag => {
-                    const btn = document.createElement('button');
-                    btn.textContent = tag;
-                    btn.className = "px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white font-medium hover:border-red-500 transition-all";
-                    btn.onclick = () => {
-                        if(selectedTags.includes(tag)) {
-                            selectedTags = selectedTags.filter(t => t !== tag);
-                            btn.classList.remove('bg-red-600', 'text-white');
-                        } else {
-                            if(selectedTags.length >= MAX_TAGS) return;
-                            selectedTags.push(tag);
-                            btn.classList.add('bg-red-600', 'text-white');
-                        }
-                    };
-                    negContainerStrict.appendChild(btn);
+                toTagArray(businessData.negative_tags).forEach(tag => {
+                    negContainerStrict.appendChild(createTagButton(tag, tag, selectedTags, 'red'));
                 });
             }
         });
