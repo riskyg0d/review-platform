@@ -196,7 +196,6 @@
             });
         });
 
-<<<<<<< Updated upstream
         // Simple translation dictionaries injected via python or client side map
         function translateTag(tag) {
             if (currentLang === 'en') return tag;
@@ -261,18 +260,10 @@ function renderTags() {
             
             document.getElementById('tags-container').innerHTML = '';
             document.getElementById('neg-tags-container').innerHTML = '';
-=======
-        function renderTags() {
-            const posContainer = document.getElementById('tags-container');
-            const negContainer = document.getElementById('neg-tags-container');
-            posContainer.innerHTML = '';
-            negContainer.innerHTML = '';
->>>>>>> Stashed changes
             
             selectedTags = [];
             selectedNegTags = [];
             
-<<<<<<< Updated upstream
             let rawTags = currentRating >= 3 ? businessData.positive_tags : businessData.negative_tags;
             let tagsToUse = [];
 
@@ -281,10 +272,6 @@ function renderTags() {
             } else if (typeof rawTags === 'string') {
                 tagsToUse = rawTags.split(',').map(t => t.trim()).filter(Boolean);
             }
-=======
-            let rawPos = businessData.positive_tags || [];
-            let rawNeg = businessData.negative_tags || [];
->>>>>>> Stashed changes
 
             let posToUse = Array.isArray(rawPos) ? rawPos.map(t => String(t).trim()).filter(Boolean) : (typeof rawPos === 'string' ? rawPos.split(',').map(t => t.trim()).filter(Boolean) : []);
             let negToUse = Array.isArray(rawNeg) ? rawNeg.map(t => String(t).trim()).filter(Boolean) : (typeof rawNeg === 'string' ? rawNeg.split(',').map(t => t.trim()).filter(Boolean) : []);
