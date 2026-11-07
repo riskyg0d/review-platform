@@ -576,7 +576,7 @@ async def generate_ai_review(req: dict):
         elif lang == 'mr':
             review += f" प्रमुख वैशिष्ट्ये: {tag_str}."
         else:
-            review += f" Highlights: {tag_str}."
+            review += f" {tag_str}."
 
     if lang == 'hi':
         review += " अत्यधिक अनुशंसित!"
