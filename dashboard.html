@@ -57,13 +57,35 @@
         
         <div class="lg:col-span-2 space-y-6">
             <!-- Analytics Chart Section (Top) -->
-            <div id="chart-section-card" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hidden">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-semibold text-slate-800">Review Growth Analytics</h2>
-                    <span class="text-xs text-slate-400">Cumulative reviews since subscription</span>
+            <div id="chart-section-card" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hidden space-y-6">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-slate-800">Review Growth Analytics</h2>
+                        <span class="text-xs text-slate-400">Cumulative reviews since subscription</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="reviewGrowthChart"></canvas>
+                    </div>
                 </div>
-                <div class="h-64 relative">
-                    <canvas id="reviewGrowthChart"></canvas>
+
+                <!-- Stats Summary Tabs / Cards Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t">
+                    <div class="bg-slate-50 p-4 rounded-xl border text-center">
+                        <p class="text-xs text-slate-500 font-medium mb-1">Total Reviews</p>
+                        <p id="stat-total-reviews" class="text-xl font-bold text-slate-900">0</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border text-center">
+                        <p class="text-xs text-slate-500 font-medium mb-1">Average Rating</p>
+                        <p id="stat-avg-rating" class="text-xl font-bold text-amber-500">0.0 ★</p>
+                    </div>
+                    <div class="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 text-center">
+                        <p class="text-xs text-emerald-700 font-medium mb-1">Public Reviews (3-5★)</p>
+                        <p id="stat-public-count" class="text-xl font-bold text-emerald-800">0</p>
+                    </div>
+                    <div class="bg-red-50/50 p-4 rounded-xl border border-red-200 text-center">
+                        <p class="text-xs text-red-700 font-medium mb-1">Private Feedback (1-2★)</p>
+                        <p id="stat-private-count" class="text-xl font-bold text-red-800">0</p>
+                    </div>
                 </div>
             </div>
 
@@ -161,7 +183,32 @@
                     allBusinessReviews = data;
                     renderReviewsList(allBusinessReviews);
                     renderGrowthChart(allBusinessReviews);
+                    updateDashboardStats(allBusinessReviews);
                 });
+        }
+
+        function updateDashboardStats(reviews) {
+            const total = reviews.length;
+            document.getElementById('stat-total-reviews').textContent = total;
+
+            if (total === 0) {
+                document.getElementById('stat-avg-rating').textContent = '0.0 ★';
+                document.getElementById('stat-public-count').textContent = '0';
+                document.getElementById('stat-private-count').textContent = '0';
+                return;
+            }
+
+            const sumRatings = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+            const avg = (sumRatings / total).toFixed(1);
+            document.getElementById('stat-avg-rating').textContent = avg + ' ★';
+
+            // Public reviews: 3, 4, 5 stars
+            const publicCount = reviews.filter(r => r.rating >= 3).length;
+            document.getElementById('stat-public-count').textContent = publicCount;
+
+            // Private feedback: 1 and 2 stars
+            const privateCount = reviews.filter(r => r.rating <= 2).length;
+            document.getElementById('stat-private-count').textContent = privateCount;
         }
 
         function renderReviewsList(reviews) {
@@ -251,12 +298,14 @@
             }
 
             renderReviewsList(filtered);
+            updateDashboardStats(filtered);
         }
 
         function resetDateFilter() {
             document.getElementById('filter-start-date').value = '';
             document.getElementById('filter-end-date').value = '';
             renderReviewsList(allBusinessReviews);
+            updateDashboardStats(allBusinessReviews);
         }
 
         function handleCustomTagInput(type) {
