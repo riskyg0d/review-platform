@@ -240,21 +240,21 @@
                 }
                 btn.textContent = displayTag;
                 btn.className = "px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white font-medium hover:border-red-500 transition-all";
-btn.onclick = () => {
-                    if(selectedTags.includes(tag)) {
-                        selectedTags = selectedTags.filter(t => t !== tag);
-                        btn.classList.remove('bg-blue-600', 'text-white');
-                        btn.classList.add('text-slate-800');
-                    } else {
-                        if(selectedTags.length >= MAX_TAGS) {
-                            alert(currentLang === 'hi' ? "आप अधिकतम 5 टैग चुन सकते हैं।" : (currentLang === 'mr' ? "तुम्ही जास्तीत जास्त ५ टॅग निवडू शकता." : "You can select a maximum of 5 tags."));
-                            return;
-                        }
-                        selectedTags.push(tag);
-                        btn.classList.add('bg-blue-600', 'text-white');
-                        btn.classList.remove('text-slate-800');
+            btn.onclick = () => {
+                if (selectedTags.includes(tag)) {
+                    selectedTags = selectedTags.filter(t => t !== tag);
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('bg-white', 'text-black');
+                } else {
+                    if (selectedTags.length >= MAX_TAGS) {
+                        alert(currentLang === 'hi' ? "आप अधिकतम 5 टैग चुन सकते हैं।" : (currentLang === 'mr' ? "तुम्ही जास्तीत जास्त ५ टॅग निवडू शकता." : "You can select a maximum of 5 tags."));
+                        return;
                     }
-                };
+                    selectedTags.push(tag);
+                    btn.classList.remove('text-slate-800');
+                    btn.classList.add('bg-white', 'text-black');
+                }
+            };
                 negContainer.appendChild(btn);
             });
         }
