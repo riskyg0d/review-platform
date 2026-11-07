@@ -40,14 +40,15 @@
             
             <div id="tag-manager-card" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hidden">
                 <h2 class="text-lg font-semibold mb-2 text-slate-800">Review Tags & Custom Input</h2>
-                <p class="text-xs text-slate-500 mb-3">Select presets or type comma-separated custom tags.</p>
+                <p class="text-xs text-slate-500 mb-3">Select presets or add custom tags below.</p>
+                
                 <label class="block text-xs font-semibold mb-1 text-slate-700">Positive Tags (Rating >= 4)</label>
                 <div id="pos-checkboxes" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto mb-2 p-2 border rounded-xl bg-slate-50"></div>
-                <input type="text" id="custom-pos-input" class="w-full p-2 text-xs border rounded-xl mb-3" placeholder="Or add custom tags (comma separated)...">
+                <input type="text" id="custom-pos-input" class="w-full p-2 text-xs border rounded-xl mb-3" placeholder="Type custom tags separated by commas..." oninput="handleCustomTagInput('pos')">
 
                 <label class="block text-xs font-semibold mb-1 text-slate-700">Negative / Improvement Tags (Rating <= 3)</label>
                 <div id="neg-checkboxes" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto mb-2 p-2 border rounded-xl bg-slate-50"></div>
-                <input type="text" id="custom-neg-input" class="w-full p-2 text-xs border rounded-xl mb-3" placeholder="Or add custom tags (comma separated)...">
+                <input type="text" id="custom-neg-input" class="w-full p-2 text-xs border rounded-xl mb-3" placeholder="Type custom tags separated by commas..." oninput="handleCustomTagInput('neg')">
 
                 <button onclick="saveTagSelection()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save Tags</button>
             </div>
@@ -112,27 +113,13 @@
             
             document.getElementById('tag-manager-card').classList.remove('hidden');
             
-            // Render checkboxes for preset positive and negative tags (allowing selection via click instead of manual typing!)
-            const posContainer = document.getElementById('pos-checkboxes');
-            const negContainer = document.getElementById('neg-checkboxes');
-            
             const activePos = b.positive_tags || [];
             const activeNeg = b.negative_tags || [];
             
-            posContainer.innerHTML = (b.preset_positive || []).map(t => `
-                <label class="inline-flex items-center text-xs bg-white border px-2 py-1 rounded-lg cursor-pointer hover:bg-blue-50">
-                    <input type="checkbox" value="${t}" ${activePos.includes(t) ? 'checked' : ''} onchange="limitCheck(this, 'pos-chk', 5)" class="pos-chk rounded text-blue-600 mr-1.5"> ${t}
-                </label>
-            `).join('');
-            
-            negContainer.innerHTML = (b.preset_negative || []).map(t => `
-                <label class="inline-flex items-center text-xs bg-white border px-2 py-1 rounded-lg cursor-pointer hover:bg-red-50">
-                    <input type="checkbox" value="${t}" ${activeNeg.includes(t) ? 'checked' : ''} onchange="limitCheck(this, 'neg-chk', 5)" class="neg-chk rounded text-red-600 mr-1.5"> ${t}
-                </label>
-            `).join('');
-            
             document.getElementById('custom-pos-input').value = activePos.join(', ');
             document.getElementById('custom-neg-input').value = activeNeg.join(', ');
+            
+            renderTagCheckboxes(b);
             
             fetch(`/api/owner/reviews/${b.id}`)
                 .then(res => res.json())
@@ -154,7 +141,51 @@
                     `).join('');
                 });
         }
-         
+
+        function handleCustomTagInput(type) {
+            if(!currentSelectedBusiness) return;
+            const inputVal = document.getElementById(type === 'pos' ? 'custom-pos-input' : 'custom-neg-input').value;
+            const typedTags = inputVal.split(',').map(t => t.trim()).filter(Boolean);
+            
+            const preset = type === 'pos' ? (currentSelectedBusiness.preset_positive || []) : (currentSelectedBusiness.preset_negative || []);
+            const combined = Array.from(new Set([...preset, ...typedTags]));
+            
+            const container = document.getElementById(type === 'pos' ? 'pos-checkboxes' : 'neg-checkboxes');
+            const activeSet = currentSelectedBusiness[type === 'pos' ? 'positive_tags' : 'negative_tags'] || [];
+            
+            container.innerHTML = combined.map(t => `
+                <label class="inline-flex items-center text-xs bg-white border px-2 py-1 rounded-lg cursor-pointer ${type === 'pos' ? 'hover:bg-blue-50' : 'hover:bg-red-50'}">
+                    <input type="checkbox" value="${t}" ${activeSet.includes(t) || typedTags.includes(t) ? 'checked' : ''} onchange="limitCheck(this, '${type === 'pos' ? 'pos-chk' : 'neg-chk'}', 5)" class="${type === 'pos' ? 'pos-chk' : 'neg-chk'} rounded ${type === 'pos' ? 'text-blue-600' : 'text-red-600'} mr-1.5"> ${t}
+                </label>
+            `).join('');
+        }
+        
+        function renderTagCheckboxes(b) {
+            const posContainer = document.getElementById('pos-checkboxes');
+            const negContainer = document.getElementById('neg-checkboxes');
+            
+            let presetPos = b.preset_positive || [];
+            let presetNeg = b.preset_negative || [];
+            
+            let currentPos = Array.from(new Set([...presetPos, ...(b.positive_tags || [])]));
+            let currentNeg = Array.from(new Set([...presetNeg, ...(b.negative_tags || [])]));
+            
+            const activePos = b.positive_tags || [];
+            const activeNeg = b.negative_tags || [];
+            
+            posContainer.innerHTML = currentPos.map(t => `
+                <label class="inline-flex items-center text-xs bg-white border px-2 py-1 rounded-lg cursor-pointer hover:bg-blue-50">
+                    <input type="checkbox" value="${t}" ${activePos.includes(t) ? 'checked' : ''} onchange="limitCheck(this, 'pos-chk', 5)" class="pos-chk rounded text-blue-600 mr-1.5"> ${t}
+                </label>
+            `).join('');
+            
+            negContainer.innerHTML = currentNeg.map(t => `
+                <label class="inline-flex items-center text-xs bg-white border px-2 py-1 rounded-lg cursor-pointer hover:bg-red-50">
+                    <input type="checkbox" value="${t}" ${activeNeg.includes(t) ? 'checked' : ''} onchange="limitCheck(this, 'neg-chk', 5)" class="neg-chk rounded text-red-600 mr-1.5"> ${t}
+                </label>
+            `).join('');
+        }
+        
         function limitCheck(checkbox, className, maxLimit) {
             const checkedCount = document.querySelectorAll('.' + className + ':checked').length;
             if (checkedCount > maxLimit) {
@@ -164,17 +195,8 @@
         }
 
         function saveTagSelection() {
-            const pos = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
-            const neg = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
-            if(pos.length === 0 || neg.length === 0) {
-                alert("Please select at least some tags.");
-                return;
-            }
-            saveTagsExplicit(pos, neg);
-        }
-
-        async function saveTagsExplicit(positive_tags, negative_tags) {
             if(!currentSelectedBusiness) return;
+            
             let pos = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
             let customPos = document.getElementById('custom-pos-input').value.split(',').map(t => t.trim()).filter(Boolean);
             pos = Array.from(new Set([...pos, ...customPos]));
@@ -182,15 +204,27 @@
             let neg = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
             let customNeg = document.getElementById('custom-neg-input').value.split(',').map(t => t.trim()).filter(Boolean);
             neg = Array.from(new Set([...neg, ...customNeg]));
-            
+
+            if(pos.length > 5 || neg.length > 5) {
+                alert("You can only have a maximum of 5 active tags per category.");
+                return;
+            }
+
+            saveTagsExplicit(pos, neg);
+        }
+
+        async function saveTagsExplicit(positive_tags, negative_tags) {
             const res = await fetch('/api/owner/businesses/tags', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({business_id: currentSelectedBusiness.id, positive_tags: pos, negative_tags: neg})
+                body: JSON.stringify({business_id: currentSelectedBusiness.id, positive_tags, negative_tags})
             });
             if(res.ok) {
                 alert("Tags updated successfully!");
-                currentSelectedBusiness.positive_tags = pos;
-                currentSelectedBusiness.negative_tags = neg;
+                currentSelectedBusiness.positive_tags = positive_tags;
+                currentSelectedBusiness.negative_tags = negative_tags;
+                document.getElementById('custom-pos-input').value = positive_tags.join(', ');
+                document.getElementById('custom-neg-input').value = negative_tags.join(', ');
+                renderTagCheckboxes(currentSelectedBusiness);
             } else {
                 alert("Error saving tags");
             }
