@@ -291,6 +291,8 @@ REVIEW_INTROS = {
 
 TAG_LEADS = {
     "en": "{tags}.",
+    "hi": "{tags}।",
+    "mr": "{tags}.",
 }
 
 CLOSINGS = {
