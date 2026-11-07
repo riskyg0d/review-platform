@@ -39,13 +39,17 @@
             </div>
             
             <div id="tag-manager-card" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hidden">
-                <h2 class="text-lg font-semibold mb-2 text-slate-800">Select Active Review Tags</h2>
-                <p class="text-xs text-slate-500 mb-3">Check the tags you want to offer to your customers.</p>
-                <label class="block text-xs font-semibold mb-1 text-slate-700">Positive Tags (Rating >= 3)</label>
-                <div id="pos-checkboxes" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto mb-3 p-2 border rounded-xl bg-slate-50"></div>
-                <label class="block text-xs font-semibold mb-1 text-slate-700">Negative Tags (Rating < 3)</label>
-                <div id="neg-checkboxes" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto mb-3 p-2 border rounded-xl bg-slate-50"></div>
-                <button onclick="saveTagSelection()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save Selected Tags</button>
+                <h2 class="text-lg font-semibold mb-2 text-slate-800">Review Tags & Custom Input</h2>
+                <p class="text-xs text-slate-500 mb-3">Select presets or type comma-separated custom tags.</p>
+                <label class="block text-xs font-semibold mb-1 text-slate-700">Positive Tags (Rating >= 4)</label>
+                <div id="pos-checkboxes" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto mb-2 p-2 border rounded-xl bg-slate-50"></div>
+                <input type="text" id="custom-pos-input" class="w-full p-2 text-xs border rounded-xl mb-3" placeholder="Or add custom tags (comma separated)...">
+
+                <label class="block text-xs font-semibold mb-1 text-slate-700">Negative / Improvement Tags (Rating <= 3)</label>
+                <div id="neg-checkboxes" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto mb-2 p-2 border rounded-xl bg-slate-50"></div>
+                <input type="text" id="custom-neg-input" class="w-full p-2 text-xs border rounded-xl mb-3" placeholder="Or add custom tags (comma separated)...">
+
+                <button onclick="saveTagSelection()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium">Save Tags</button>
             </div>
         </div>
         
@@ -127,7 +131,7 @@
                 </label>
             `).join('');
             
-            fetch(`/api/owner/reviews/${b.id}`)
+            document.getElementById('custom-pos-input').value = activePos.join(', '); document.getElementById('custom-neg-input').value = activeNeg.join(', '); fetch(`/api/owner/reviews/${b.id}`)
                 .then(res => res.json())
                 .then(data => {
                     const list = document.getElementById('reviews-list');
@@ -148,7 +152,8 @@
                 });
         }
         
-        async function limitCheck(checkbox, className, maxLimit) {
+        async 
+        function limitCheck(checkbox, className, maxLimit) {
             const checkedCount = document.querySelectorAll('.' + className + ':checked').length;
             if (checkedCount > maxLimit) {
                 alert("You can select a maximum of " + maxLimit + " tags.");
@@ -168,8 +173,13 @@
 
         async function saveTagsExplicit(positive_tags, negative_tags) {
             if(!currentSelectedBusiness) return;
-            const pos = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
-            const neg = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
+            let pos = Array.from(document.querySelectorAll('.pos-chk:checked')).map(el => el.value);
+            let customPos = document.getElementById('custom-pos-input').value.split(',').map(t => t.trim()).filter(Boolean);
+            pos = Array.from(new Set([...pos, ...customPos]));
+
+            let neg = Array.from(document.querySelectorAll('.neg-chk:checked')).map(el => el.value);
+            let customNeg = document.getElementById('custom-neg-input').value.split(',').map(t => t.trim()).filter(Boolean);
+            neg = Array.from(new Set([...neg, ...customNeg]));
             
             const res = await fetch('/api/owner/businesses/tags', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},

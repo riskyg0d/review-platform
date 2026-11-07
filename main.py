@@ -537,54 +537,384 @@ async def generate_ai_review(req: dict):
     
     cat_intros = {
         "Restaurant / Cafe": {
-            "en": [f"I recently visited {b_name} and the food and ambiance were incredible.", f"Had a wonderful dining experience at {b_name} today."],
-            "hi": [f"मैंने हाल ही में {b_name} का दौरा किया और यहाँ का खाना और माहौल शानदार था।", f"आज {b_name} में भोजन का अनुभव बहुत अच्छा रहा।"],
-            "mr": [f"मी अलीकडेच {b_name} ला भेट दिली आणि येथील अन्न आणि वातावरण अप्रतिम होते.", f"आज {b_name} मध्ये जेवणाचा अनुभव खूप छान होता."]
+            "en": [
+                f"I recently visited {b_name} and the food and ambiance were incredible.",
+                f"Had a wonderful dining experience at {b_name} today with outstanding flavors.",
+                f"Absolute favorite spot in town! {b_name} never fails to impress with great quality.",
+                f"Came to {b_name} for lunch and everything from the service to the dishes was top-notch.",
+                f"The culinary delights at {b_name} are truly unmatched. Highly recommend trying their specials.",
+                f"A fantastic evening spent at {b_name}. Cozy atmosphere and delicious food.",
+                f"Every dish we ordered at {b_name} was cooked to perfection and served promptly.",
+                f"Superb hospitality and mouthwatering dishes make {b_name} a must-visit destination.",
+                f"Impressed by the cleanliness and exceptional taste at {b_name}. Will definitely return.",
+                f"Dining at {b_name} was an absolute treat for the taste buds. Truly wonderful."
+            ],
+            "hi": [
+                f"मैंने हाल ही में {b_name} का दौरा किया और यहाँ का खाना और माहौल शानदार था।",
+                f"आज {b_name} में भोजन का अनुभव बहुत अच्छा रहा, बेहतरीन स्वाद।",
+                f"शहर में मेरी पसंदीदा जगह! {b_name} हमेशा उच्च गुणवत्ता से प्रभावित करता है।",
+                f"दोपहर के भोजन के लिए {b_name} आया और सेवा से लेकर व्यंजनों तक सब कुछ बेहतरीन था।",
+                f"{b_name} में पाक कला वास्तव में बेजोड़ है।",
+                f"{b_name} में एक शानदार शाम बिताई। आरामदायक माहौल और स्वादिष्ट खाना।",
+                f"{b_name} पर हमने जो भी ऑर्डर किया, वह बेहतरीन तरीके से पकाया गया था।",
+                f"शानदार आतिथ्य और लजीज व्यंजन {b_name} को देखने लायक बनाते हैं।",
+                f"{b_name} में स्वच्छता और असाधारण स्वाद से प्रभावित हूँ।",
+                f"{b_name} में भोजन करना एक अद्भुत अनुभव था।"
+            ],
+            "mr": [
+                f"मी अलीकडेच {b_name} ला भेट दिली आणि येथील अन्न आणि वातावरण अप्रतिम होते.",
+                f"आज {b_name} मध्ये जेवणाचा अनुभव खूप छान होता, उत्तम चव.",
+                f"शहरातील माझे आवडते ठिकाण! {b_name} नेहमीच उत्तम गुणवत्ता देते.",
+                f"दुपारच्या जेवणासाठी {b_name} ला आलो आणि सर्व काही उत्तम होते.",
+                f"{b_name} मधील जेवणाची चव खरोखरच अप्रतिम आहे.",
+                f"{b_name} मध्ये एक छान संध्याकाळ घालवली. आरामदायक वातावरण आणि स्वादिष्ट अन्न.",
+                f"{b_name} वर ऑर्डर केलेले प्रत्येक अन्न उत्तम प्रकारे बनवले होते.",
+                f"उत्कृष्ट आतिथ्य आणि चवदार पदार्थांमुळे {b_name} भेट देण्यासारखे आहे.",
+                f"{b_name} मधील स्वच्छता आणि चव पाहून खूप आनंद झाला.",
+                f"{b_name} मध्ये जेवणे हा एक विलक्षण अनुभव होता."
+            ]
         },
         "Salon / Spa": {
-            "en": [f"My session at {b_name} was extremely relaxing and professional.", f"Completely refreshed after visiting {b_name}."],
-            "hi": [f"{b_name} में मेरा सत्र बेहद आरामदायक और पेशेवर था।", f"{b_name} जाने के बाद मैं पूरी तरह तरोताजा महसूस कर रहा हूँ।"],
-            "mr": [f"{b_name} मधील माझे सत्र अत्यंत आरामदायक आणि व्यावसायिक होते.", f"{b_name} ला भेट दिल्यानंतर एकदम फ्रेश वाटले."]
+            "en": [
+                f"My session at {b_name} was extremely relaxing and professional.",
+                f"Completely refreshed after visiting {b_name}. Outstanding service.",
+                f"The staff at {b_name} are true experts. Loved the rejuvenating treatment.",
+                f"Such a soothing environment at {b_name}. Highly professional stylists.",
+                f"Felt so pampered and well taken care of during my visit to {b_name}.",
+                f"Exceptional grooming and spa treatments at {b_name}. Worth every penny.",
+                f"Clean, calming, and top-quality care at {b_name}.",
+                f"My hair and skin look glowing after my appointment at {b_name}.",
+                f"Absolute perfection! {b_name} provides the ultimate relaxation experience.",
+                f"Professionalism at its finest. {b_name} is my go-to place now."
+            ],
+            "hi": [
+                f"{b_name} में मेरा सत्र बेहद आरामदायक और पेशेवर था।",
+                f"{b_name} जाने के बाद मैं पूरी तरह तरोताजा महसूस कर रहा हूँ। उत्कृष्ट सेवा।",
+                f"{b_name} के कर्मचारी वास्तविक विशेषज्ञ हैं। कायाकल्प उपचार पसंद आया।",
+                f"{b_name} में बहुत शांत वातावरण। अत्यधिक पेशेवर स्टाइलिस्ट।",
+                f"{b_name} की मेरी यात्रा के दौरान बहुत अच्छा लगा।",
+                f"{b_name} पर असाधारण स्पा उपचार। हर पैसे के लायक।",
+                f"{b_name} में स्वच्छ, शांत और उच्च गुणवत्ता की देखभाल।",
+                f"{b_name} में मेरी नियुक्ति के बाद मेरे बाल और त्वचा चमक रहे हैं।",
+                f"पूर्णता! {b_name} परम विश्राम अनुभव प्रदान करता है।",
+                f"{b_name} अब मेरी पसंदीदा जगह है।"
+            ],
+            "mr": [
+                f"{b_name} मधील माझे सत्र अत्यंत आरामदायक आणि व्यावसायिक होते.",
+                f"{b_name} ला भेट दिल्यानंतर एकदम फ्रेश वाटले. उत्कृष्ट सेवा.",
+                f"{b_name} मधील कर्मचारी खरोखर तज्ज्ञ आहेत.",
+                f"{b_name} मध्ये खूप शांत वातावरण आहे.",
+                f"{b_name} मधील भेटीदरम्यान खूप छान काळजी घेतली गेली.",
+                f"{b_name} वर अपवादात्मक स्पा उपचार. प्रत्येक पैशाचे मूल्य.",
+                f"{b_name} मध्ये स्वच्छ आणि उच्च दर्जाची काळजी.",
+                f"{b_name} मधील भेटीनंतर माझे केस आणि त्वचा चमकत आहेत.",
+                f"परिपूर्णता! {b_name} अंतिम विश्रांतीचा अनुभव देते.",
+                f"{b_name} हे आता माझे आवडते ठिकाण बनले आहे."
+            ]
         },
         "Retail / Shopping": {
-            "en": [f"Shopping at {b_name} was a fantastic experience with great options.", f"Found exactly what I needed at {b_name}."],
-            "hi": [f"{b_name} पर खरीदारी करना शानदार अनुभव था, बहुत अच्छे विकल्प मिले।", f"मुझे {b_name} पर बिल्कुल वही मिला जिसकी मुझे तलाश थी।"],
-            "mr": [f"{b_name} मध्ये खरेदी करणे हा एक छान अनुभव होता, खूप चांगले पर्याय मिळाले.", f"मला {b_name} वर अगदी मला हवे असलेले सामान मिळाले."]
+            "en": [
+                f"Shopping at {b_name} was a fantastic experience with great options.",
+                f"Found exactly what I needed at {b_name} with helpful staff assistance.",
+                f"Amazing collection and wonderful discounts at {b_name}.",
+                f"Clean store, huge variety, and smooth checkout at {b_name}.",
+                f"Quality products and genuine items available at {b_name}.",
+                f"Always a pleasure shopping at {b_name}. Well stocked and organized.",
+                f"Polite cashiers and quick billing make {b_name} my favorite store.",
+                f"Top-tier shopping experience at {b_name}. Highly recommend.",
+                f"Found trendy collections and great prices at {b_name}.",
+                f"Excellent customer service and wide variety at {b_name}."
+            ],
+            "hi": [
+                f"{b_name} पर खरीदारी करना शानदार अनुभव था, बहुत अच्छे विकल्प मिले।",
+                f"सहायक कर्मचारियों की मदद से मुझे {b_name} पर बिल्कुल वही मिला जिसकी तलाश थी।",
+                f"{b_name} पर अद्भुत संग्रह और शानदार छूट।",
+                f"{b_name} में साफ स्टोर, विशाल विविधता और आसान चेकआउट।",
+                f"{b_name} पर गुणवत्तापूर्ण उत्पाद और वास्तविक वस्तुएं उपलब्ध हैं।",
+                f"{b_name} पर खरीदारी करना हमेशा एक सुखद अनुभव होता है।",
+                f"विनम्र कैशियर और त्वरित बिलिंग {b_name} को मेरा पसंदीदा स्टोर बनाते हैं।",
+                f"{b_name} पर बेहतरीन खरीदारी अनुभव। अत्यधिक अनुशंसित।",
+                f"{b_name} पर ट्रेंडी कलेक्शन और बेहतरीन कीमतें मिलीं।",
+                f"{b_name} पर उत्कृष्ट ग्राहक सेवा और व्यापक विविधता।"
+            ],
+            "mr": [
+                f"{b_name} मध्ये खरेदी करणे हा एक छान अनुभव होता, खूप चांगले पर्याय मिळाले.",
+                f"कर्मचाऱ्यांच्या मदतीने मला {b_name} वर हवे असलेले सामान मिळाले.",
+                f"{b_name} वर आश्चर्यकारक संकलन आणि छान सूट.",
+                f"{b_name} मध्ये स्वच्छ दुकान, मोठी विविधता आणि सोपे बिलिंग.",
+                f"{b_name} वर दर्जेदार उत्पादने आणि अस्सल वस्तू उपलब्ध आहेत.",
+                f"{b_name} मध्ये खरेदी करणे नेहमीच आनंददायी असते.",
+                f"नम्र कॅशियर आणि जलद बिलिंगमुळे {b_name} हे माझे आवडते दुकान आहे.",
+                f"{b_name} वर उच्च दर्जाचा खरेदीचा अनुभव. अत्यंत शिफारस करतो.",
+                f"{b_name} वर ट्रेंडी कलेक्शन आणि छान किंमती मिळाल्या.",
+                f"{b_name} वर उत्कृष्ट ग्राहक सेवा."
+            ]
         },
         "Hotel / Resort": {
-            "en": [f"Our stay at {b_name} was exceptionally comfortable and luxurious.", f"Loved the hospitality and rooms at {b_name}."],
-            "hi": [f"{b_name} में हमारा प्रवास बेहद आरामदायक और शानदार रहा।", f"मुझे {b_name} की आतिथ्य सत्कार और कमरे बहुत पसंद आए।"],
-            "mr": [f"{b_name} मधील आमचा मुक्काम अत्यंत आरामदायी आणि विलासी होता.", f"मला {b_name} मधील आतिथ्य आणि खोल्या खूप आवडल्या."]
+            "en": [
+                f"Our stay at {b_name} was exceptionally comfortable and luxurious.",
+                f"Loved the hospitality, scenic views, and rooms at {b_name}.",
+                f"A peaceful getaway at {b_name}. Impeccable cleanliness and service.",
+                f"Delicious breakfast and prompt room service during our stay at {b_name}.",
+                f"Modern amenities and secure property made {b_name} unforgettable.",
+                f"Stunning ambiance and courteous staff at {b_name}.",
+                f"Fast check-in and luxurious suites at {b_name} exceeded expectations.",
+                f"Tranquil environment and top-tier hospitality at {b_name}.",
+                f"A wonderful resort experience at {b_name}. Highly recommended.",
+                f"Everything about {b_name} was pristine and relaxing."
+            ],
+            "hi": [
+                f"{b_name} में हमारा प्रवास बेहद आरामदायक और शानदार रहा।",
+                f"मुझे {b_name} का आतिथ्य सत्कार, सुंदर दृश्य और कमरे बहुत पसंद आए।",
+                f"{b_name} में एक शांतिपूर्ण छुट्टी। त्रुटिहीन स्वच्छता और सेवा।",
+                f"{b_name} में हमारे प्रवास के दौरान स्वादिष्ट नाश्ता और त्वरित रूम सर्विस।",
+                f"आधुनिक सुविधाओं और सुरक्षित संपत्ति ने {b_name} को अविस्मरणीय बना दिया।",
+                f"{b_name} में शानदार माहौल और विनम्र कर्मचारी।",
+                f"{b_name} पर तेज चेक-इन और शानदार सुइट्स।",
+                f"{b_name} में शांत वातावरण और उच्च स्तर का आतिथ्य।",
+                f"{b_name} पर एक अद्भुत रिसॉर्ट अनुभव। अत्यधिक अनुशंसित।",
+                f"{b_name} के बारे में सब कुछ प्राचीन और आरामदायक था।"
+            ],
+            "mr": [
+                f"{b_name} मधील आमचा मुक्काम अत्यंत आरामदायी आणि विलासी होता.",
+                f"मला {b_name} मधील आतिथ्य, निसर्गरम्य दृश्ये आणि खोल्या खूप आवडल्या.",
+                f"{b_name} मध्ये एक शांत सुट्टी. निर्दोष स्वच्छता आणि सेवा.",
+                f"{b_name} मधील मुक्कामादरम्यान स्वादिष्ट नाश्ता आणि रूम सर्व्हिस.",
+                f"आधुनिक सुविधा आणि सुरक्षित मालमत्तेने {b_name} अविस्मरणीय बनवले.",
+                f"{b_name} मध्ये सुंदर वातावरण आणि नम्र कर्मचारी.",
+                f"{b_name} वर जलद चेक-इन आणि विलासी सुइट्स.",
+                f"{b_name} मध्ये शांत वातावरण आणि उच्च दर्जाचे आतिथ्य.",
+                f"{b_name} वर एक अद्भुत रिसॉर्ट अनुभव. अत्यंत शिफारस केलेले.",
+                f"{b_name} बद्दल सर्वकाही स्वच्छ आणि आरामदायी होते."
+            ]
         },
         "Gym / Fitness Studio": {
-            "en": [f"Working out at {b_name} is always motivating and energizing.", f"Great equipment and trainers at {b_name}."],
-            "hi": [f"{b_name} में वर्कआउट करना हमेशा ऊर्जावान और प्रेरणादायक होता है।", f"{b_name} में बेहतरीन उपकरण और ट्रेनर हैं।"],
-            "mr": [f"{b_name} मध्ये कसरत करणे नेहमीच ऊर्जावान आणि प्रेरणादायी असते.", f"{b_name} मध्ये उत्तम उपकरणे आणि प्रशिक्षक आहेत."]
+            "en": [
+                f"Working out at {b_name} is always motivating and energizing.",
+                f"Great equipment, clean changing rooms, and expert trainers at {b_name}.",
+                f"Fantastic fitness community and well-maintained weights at {b_name}.",
+                f"Spacious workout area and effective programs at {b_name}.",
+                f"Proper sanitization and flexible timings at {b_name} make it the best gym.",
+                f"Knowledgeable trainers and modern gear at {b_name}.",
+                f"Always an incredible workout session at {b_name}.",
+                f"Clean showers, great playlist, and motivating vibe at {b_name}.",
+                f"Top-notch fitness studio! {b_name} helps you reach your goals.",
+                f"Ample equipment and professional guidance at {b_name}."
+            ],
+            "hi": [
+                f"{b_name} में वर्कआउट करना हमेशा ऊर्जावान और प्रेरणादायक होता है।",
+                f"{b_name} में बेहतरीन उपकरण, साफ चेंजिंग रूम और विशेषज्ञ ट्रेनर हैं।",
+                f"{b_name} पर शानदार फिटनेस समुदाय और अच्छी तरह से रखरखाव वाले वजन।",
+                f"{b_name} में विशाल कसरत क्षेत्र और प्रभावी कार्यक्रम।",
+                f"{b_name} में उचित सैनिटाइजेशन और लचीला समय इसे सबसे अच्छा जिम बनाता है।",
+                f"{b_name} पर ज्ञानी प्रशिक्षक और आधुनिक गियर।",
+                f"{b_name} पर हमेशा एक अविश्वसनीय कसरत सत्र।",
+                f"{b_name} में साफ शॉवर, बेहतरीन प्लेलिस्ट और प्रेरक माहौल।",
+                f"शीर्ष स्तर का फिटनेस स्टूडियो! {b_name} आपको अपने लक्ष्यों तक पहुँचने में मदद करता है।",
+                f"{b_name} पर प्रचुर उपकरण और व्यावसायिक मार्गदर्शन।"
+            ],
+            "mr": [
+                f"{b_name} मध्ये कसरत करणे नेहमीच ऊर्जावान आणि प्रेरणादायी असते.",
+                f"{b_name} मध्ये उत्तम उपकरणे, स्वच्छ बदलण्याची खोली आणि तज्ज्ञ प्रशिक्षक आहेत.",
+                f"{b_name} वर छान फिटनेस समुदाय.",
+                f"{b_name} मध्ये मोकळी कसरत जागा आणि प्रभावी कार्यक्रम.",
+                f"{b_name} मधील योग्य स्वच्छता आणि लवचिक वेळ यामुळे हे सर्वोत्तम जिम बनते.",
+                f"{b_name} वर जाणकार प्रशिक्षक आणि आधुनिक उपकरणे.",
+                f"{b_name} वर नेहमीच एक अविश्वसनीय कसरत सत्र.",
+                f"{b_name} मध्ये स्वच्छ शॉवर आणि प्रेरक वातावरण.",
+                f"अव्वल दर्जाचे फिटनेस स्टुडिओ! {b_name} तुम्हाला ध्येय गाठण्यास मदत करते.",
+                f"{b_name} वर भरपूर उपकरणे आणि व्यावसायिक मार्गदर्शन."
+            ]
         },
         "Healthcare / Clinic": {
-            "en": [f"The care and attention at {b_name} made me feel so secure.", f"Very professional and clean clinic at {b_name}."],
-            "hi": [f"{b_name} पर मिलने वाली देखभाल से मुझे बहुत राहत मिली।", f"{b_name} एक बहुत ही पेशेवर और स्वच्छ क्लिनिक है।"],
-            "mr": [f"{b_name} येथील काळजी आणि लक्ष यामुळे मला खूप सुरक्षित वाटले.", f"{b_name} ही अतिशय व्यावसायिक और स्वच्छ क्लिनिक आहे."]
+            "en": [
+                f"The care and attention at {b_name} made me feel so secure.",
+                f"Very professional, clean clinic with minimal waiting time at {b_name}.",
+                f"Caring doctor and polite nursing staff at {b_name}.",
+                f"Accurate diagnosis and affordable consultation fees at {b_name}.",
+                f"Well-equipped clinic with a calm and reassuring atmosphere.",
+                f"Reliable pharmacy and excellent follow-up care at {b_name}.",
+                f"Prompt appointments and compassionate treatment at {b_name}.",
+                f"Exceptional healthcare service and clean instruments at {b_name}.",
+                f"Dr. and staff at {b_name} are wonderfully supportive.",
+                f"Trusted clinic for all health needs. Highly recommend {b_name}."
+            ],
+            "hi": [
+                f"{b_name} पर मिलने वाली देखभाल से मुझे बहुत राहत मिली।",
+                f"{b_name} न्यूनतम प्रतीक्षा समय के साथ एक बहुत ही पेशेवर, स्वच्छ क्लिनिक है।",
+                f"{b_name} पर देखभाल करने वाले डॉक्टर और विनम्र नर्सिंग स्टाफ।",
+                f"{b_name} पर सटीक निदान और किफायती परामर्श शुल्क।",
+                f"शांत और आश्वस्त करने वाले माहौल के साथ सुसज्जित क्लिनिक।",
+                f"{b_name} पर विश्वसनीय फार्मेसी और उत्कृष्ट फॉलो-अप देखभाल।",
+                f"{b_name} पर त्वरित अपॉइंटमेंट और करुणामय उपचार।",
+                f"{b_name} पर असाधारण स्वास्थ्य सेवा और स्वच्छ उपकरण।",
+                f"{b_name} में डॉक्टर और स्टाफ बहुत मददगार हैं।",
+                f"सभी स्वास्थ्य आवश्यकताओं के लिए विश्वसनीय क्लिनिक। {b_name} की अत्यधिक अनुशंसा करते हैं।"
+            ],
+            "mr": [
+                f"{b_name} येथील काळजी आणि लक्ष यामुळे मला खूप सुरक्षित वाटले.",
+                f"{b_name} ही कमी प्रतीक्षा वेळेसह अतिशय व्यावसायिक आणि स्वच्छ क्लिनिक आहे.",
+                f"{b_name} वर काळजी घेणारे डॉक्टर आणि नम्र कर्मचारी.",
+                f"{b_name} वर अचूक निदान आणि परवडणारी फी.",
+                f"शांत वातावरणासह सुसज्ज क्लिनिक.",
+                f"{b_name} वर विश्वसनीय फार्मसी आणि उत्कृष्ट काळजी.",
+                f"{b_name} वर तात्काळ अपॉइंटमेंट आणि उत्तम उपचार.",
+                f"{b_name} वर अपवादात्मक आरोग्य सेवा आणि स्वच्छ उपकरणे.",
+                f"{b_name} मधील डॉक्टर आणि कर्मचारी खूप मदतनीस आहेत.",
+                f"सर्व आरोग्य गरजांसाठी विश्वसनीय क्लिनिक. {b_name} ची शिफारस करतो."
+            ]
         },
         "Auto Repair / Garage": {
-            "en": [f"Got my vehicle fixed quickly and honestly at {b_name}.", f"Very reliable service and fair pricing at {b_name}."],
-            "hi": [f"{b_name} पर मेरी गाड़ी की मरम्मत बहुत जल्दी और ईमानदारी से की गई।", f"{b_name} पर सेवा बहुत भरोसेमंद और उचित कीमत वाली है।"],
-            "mr": [f"{b_name} वर माझ्या गाडीची दुरुस्ती अतिशय जलद आणि प्रामाणिकपणे केली.", f"{b_name} वर सेवा खूप विश्वासार्ह आणि योग्य किंमतीची आहे."]
+            "en": [
+                f"Got my vehicle fixed quickly and honestly at {b_name}.",
+                f"Fair pricing, genuine spare parts, and expert mechanics at {b_name}.",
+                f"Reliable service with transparent quotations at {b_name}.",
+                f"Punctual delivery and spotless workshop at {b_name}.",
+                f"Honest advice and top-quality repair work at {b_name}.",
+                f"Free pickup and drop service made things so easy at {b_name}.",
+                f"My car runs like new after visiting {b_name}.",
+                f"Professional garage with warranty offered on repairs.",
+                f"Trustworthy mechanics and great communication at {b_name}.",
+                f"Outstanding auto repair shop. Highly recommend {b_name}."
+            ],
+            "hi": [
+                f"{b_name} पर मेरी गाड़ी की मरम्मत बहुत जल्दी और ईमानदारी से की गई।",
+                f"{b_name} पर उचित मूल्य, वास्तविक स्पेयर पार्ट्स और विशेषज्ञ मैकेनिक।",
+                f"{b_name} पर पारदर्शी कोटेशन के साथ विश्वसनीय सेवा।",
+                f"{b_name} पर समय पर डिलीवरी और बेदाग कार्यशाला।",
+                f"{b_name} पर ईमानदार सलाह और उच्च गुणवत्ता का मरम्मत कार्य।",
+                f"{b_name} पर मुफ्त पिकअप और ड्रॉप सेवा ने चीजों को बहुत आसान बना दिया।",
+                f"{b_name} जाने के बाद मेरी कार नए जैसी चलती है।",
+                f"मरम्मत पर वारंटी के साथ पेशेवर गैराज।",
+                f"{b_name} पर भरोसेमंद मैकेनिक और बेहतरीन संचार।",
+                f"उत्कृष्ट ऑटो मरम्मत की दुकान। {b_name} की अत्यधिक अनुशंसा करें।"
+            ],
+            "mr": [
+                f"{b_name} वर माझ्या गाडीची दुरुस्ती अतिशय जलद आणि प्रामाणिकपणे केली.",
+                f"{b_name} वर योग्य किंमत, अस्सल स्पेयर पार्ट्स आणि तज्ज्ञ मेकॅनिक.",
+                f"{b_name} वर पारदर्शक कोटेशनसह विश्वसनीय सेवा.",
+                f"{b_name} वर वेळेवर डिलिव्हरी आणि स्वच्छ कार्यशाळा.",
+                f"{b_name} वर प्रामाणिक सल्ला आणि दर्जेदार दुरुस्ती काम.",
+                f"{b_name} वर मोफत पिकअप आणि ड्रॉप सेवेमुळे गोष्टी सोप्या झाल्या.",
+                f"{b_name} ला भेट दिल्यानंतर माझी कार नवीनसारखी चालते.",
+                f"दुरुस्तीवर वारंटी देणारा व्यावसायिक गॅरेज.",
+                f"{b_name} वर विश्वासू मेकॅनिक आणि उत्तम संवाद.",
+                f"उत्कृष्ट ऑटो रिपेअर दुकान. {b_name} ची शिफारस करतो."
+            ]
         },
         "Dental Clinic": {
-            "en": [f"My dental procedure at {b_name} was completely painless and smooth.", f"Very gentle dentist and clean environment at {b_name}."],
-            "hi": [f"{b_name} पर मेरी दांतों की प्रक्रिया पूरी तरह से दर्दमुक्त और सहज रही।", f"{b_name} में डॉक्टर बहुत सौम्य और वातावरण स्वच्छ है।"],
-            "mr": [f"{b_name} येथील माझी दातांची प्रक्रिया पूर्णपणे वेदनारहित आणि सुलभ झाली.", f"{b_name} मध्ये डॉक्टर अतिशय नम्र और वातावरण स्वच्छ है."]
+            "en": [
+                f"My dental procedure at {b_name} was completely painless and smooth.",
+                f"Gentle dentist and ultra-clean modern clinic at {b_name}.",
+                f"Affordable treatment and clear guidance at {b_name}.",
+                f"No waiting time and comfortable chairs at {b_name}.",
+                f"Sterile environment and reassuring staff at {b_name}.",
+                f"Detailed explanation of procedures and great results.",
+                f"Painless root canal and polite hygienist at {b_name}.",
+                f"State-of-the-art technology and expert dental care at {b_name}.",
+                f"Best dental clinic experience I've ever had.",
+                f"Very professional dentist. Highly recommend {b_name}."
+            ],
+            "hi": [
+                f"{b_name} पर मेरी दांतों की प्रक्रिया पूरी तरह से दर्दमुक्त और सहज रही।",
+                f"{b_name} में सौम्य डेंटिस्ट और अति-स्वच्छ आधुनिक क्लिनिक।",
+                f"{b_name} पर किफायती इलाज और स्पष्ट मार्गदर्शन।",
+                f"{b_name} पर कोई प्रतीक्षा समय और आरामदायक कुर्सियां नहीं।",
+                f"{b_name} पर बाँझ वातावरण और आश्वस्त करने वाला स्टाफ।",
+                f"प्रक्रियाओं का विस्तृत विवरण और बेहतरीन परिणाम।",
+                f"{b_name} पर दर्द रहित रूट कैनाल और विनम्र हाइजेनिस्ट।",
+                f"{b_name} पर अत्याधुनिक तकनीक और विशेषज्ञ दंत चिकित्सा देखभाल।",
+                f"अब तक का सबसे अच्छा दंत चिकित्सा क्लिनिक अनुभव।",
+                f"बहुत पेशेवर डेंटिस्ट। {b_name} की अत्यधिक अनुशंसा करते हैं।"
+            ],
+            "mr": [
+                f"{b_name} येथील माझी दातांची प्रक्रिया पूर्णपणे वेदनारहित आणि सुलभ झाली.",
+                f"{b_name} मध्ये सौम्य दंतवैद्य आणि अतिशय स्वच्छ आधुनिक क्लिनिक.",
+                f"{b_name} वर परवडणारा उपचार आणि स्पष्ट मार्गदर्शन.",
+                f"{b_name} वर प्रतीक्षा वेळ नाही आणि आरामदायी खुर्च्या.",
+                f"{b_name} वर निर्जंतुक वातावरण.",
+                f"प्रक्रियांचे तपशीलवार स्पष्टीकरण आणि उत्तम निकाल.",
+                f"{b_name} वर वेदनारहित रूट कॅनाल आणि नम्र कर्मचारी.",
+                f"{b_name} वर अत्याधुनिक तंत्रज्ञान आणि तज्ज्ञ दंत काळजी.",
+                f"माझा आतापर्यंतचा सर्वोत्तम दंत क्लिनिक अनुभव.",
+                f"अतिशय व्यावसायिक दंतवैद्य. {b_name} ची शिफारस करतो."
+            ]
         },
         "Real Estate Agency": {
-            "en": [f"Finding a property through {b_name} was completely hassle-free.", f"Professional agents and transparent dealings at {b_name}."],
-            "hi": [f"{b_name} के माध्यम से संपत्ति ढूंढना बेहद आसान और झंझट-मुक्त था।", f"{b_name} पर एजेंट बहुत पेशेवर और पारदर्शी हैं।"],
-            "mr": [f"{b_name} द्वारे मालमत्ता शोधणे अत्यंत सोपे आणि त्रासमुक्त होते.", f"{b_name} वर एजंट अतिशय व्यावसायिक आणि पारदर्शक आहेत."]
+            "en": [
+                f"Finding a property through {b_name} was completely hassle-free.",
+                f"Professional agents and transparent dealings at {b_name}.",
+                f"Great property options and verified listings at {b_name}.",
+                f"Smooth documentation and helpful support throughout.",
+                f"Punctual visits and honest market advice from {b_name}.",
+                f"Quick response and excellent negotiation skills by agents.",
+                f"Trustworthy and reliable real estate service at {b_name}.",
+                f"Clear terms and end-to-end service made buying easy.",
+                f"Exceptional real estate agency with great market knowledge.",
+                f"Very satisfied with {b_name}. Highly recommend."
+            ],
+            "hi": [
+                f"{b_name} के माध्यम से संपत्ति ढूंढना बेहद आसान और झंझट-मुक्त था।",
+                f"{b_name} पर एजेंट बहुत पेशेवर और पारदर्शी हैं।",
+                f"{b_name} पर महान संपत्ति विकल्प और सत्यापित लिस्टिंग।",
+                f"सुगम दस्तावेजीकरण और पूरे समय मददगार समर्थन।",
+                f"{b_name} से समय पर विजिट और ईमानदार बाजार सलाह।",
+                f"एजेंटों द्वारा त्वरित प्रतिक्रिया और उत्कृष्ट बातचीत कौशल।",
+                f"{b_name} पर भरोसेमंद और विश्वसनीय रियल एस्टेट सेवा।",
+                f"स्पष्ट शर्तों और एंड-टू-एंड सेवा ने खरीदारी को आसान बना दिया।",
+                f"शानदार बाजार ज्ञान के साथ असाधारण रियल एस्टेट एजेंसी।",
+                f"{b_name} से बहुत संतुष्ट हैं। अत्यधिक अनुशंसा करते हैं।"
+            ],
+            "mr": [
+                f"{b_name} द्वारे मालमत्ता शोधणे अत्यंत सोपे आणि त्रासमुक्त होते.",
+                f"{b_name} वर एजंट अतिशय व्यावसायिक आणि पारदर्शक आहेत.",
+                f"{b_name} वर उत्तम मालमत्ता पर्याय आणि सत्यापित याद्या.",
+                f"सुगम कागदपत्रे आणि मदतशीर समर्थन.",
+                f"{b_name} कडून वेळेवर भेटी आणि प्रामाणिक बाजार सल्ला.",
+                f"त्वरित प्रतिसाद आणि उत्कृष्ट वाटाघाटी कौशल्ये.",
+                f"{b_name} वर विश्वासू आणि भरवशाची रिअल इस्टेट सेवा.",
+                f"स्पष्ट अटी आणि एन्ड-टू-एन्ड सेवेमुळे खरेदी सोपी झाली.",
+                f"उत्कृष्ट बाजार ज्ञानासह अपवादात्मक रिअल इस्टेट एजन्सी.",
+                f"{b_name} बद्दल खूप समाधान वाटले. शिफारस करतो."
+            ]
         },
         "Bakery / Confectionery": {
-            "en": [f"The baked goods and cakes from {b_name} are exceptionally delicious.", f"Fresh and mouthwatering treats always at {b_name}."],
-            "hi": [f"{b_name} के बेक किए हुए उत्पाद और केक बेहद स्वादिष्ट हैं।", f"{b_name} पर हमेशा ताजे और लजीज व्यंजन मिलते हैं।"],
-            "mr": [f"{b_name} कडून मिळालेले बेक केलेले पदार्थ आणि केक अत्यंत स्वादिष्ट आहेत.", f"{b_name} वर नेहमी ताजे आणि चवदार पदार्थ मिळतात."]
+            "en": [
+                f"The baked goods and cakes from {b_name} are exceptionally delicious.",
+                f"Freshly baked pastries and mouthwatering treats at {b_name}.",
+                f"Friendly baker and stunning custom design cakes.",
+                f"Reasonable prices, soft bread, and great aroma.",
+                f"Prompt packing and awesome taste at {b_name}.",
+                f"Huge variety of flavors and eggless options available.",
+                f"Clean store and hygienic display of treats.",
+                f"The cake from {b_name} made our celebration extra special.",
+                f"Absolute heaven for sweet lovers! {b_name} is the best.",
+                f"Fresh and mouthwatering treats always at {b_name}."
+            ],
+            "hi": [
+                f"{b_name} के बेक किए हुए उत्पाद और केक बेहद स्वादिष्ट हैं।",
+                f"{b_name} पर ताजे बेक किए हुए पेस्ट्री और मुंह में पानी लाने वाले व्यंजन।",
+                f"मिलनसार बेकर और शानदार कस्टम डिजाइन केक।",
+                f"उचित कीमतें, नरम ब्रेड और शानदार खुशबू।",
+                f"{b_name} पर तुरंत पैकिंग और शानदार स्वाद।",
+                f"विभिन्न प्रकार के स्वाद और बिना अंडे के विकल्प उपलब्ध हैं।",
+                f"साफ स्टोर और व्यंजनों का स्वच्छ प्रदर्शन।",
+                f"{b_name} के केक ने हमारे जश्न को और भी खास बना दिया।",
+                f"मीठे प्रेमियों के लिए पूर्ण स्वर्ग! {b_name} सबसे अच्छा है।",
+                f"{b_name} पर हमेशा ताजे और लजीज व्यंजन मिलते हैं।"
+            ],
+            "mr": [
+                f"{b_name} कडून मिळालेले बेक केलेले पदार्थ आणि केक अत्यंत स्वादिष्ट आहेत.",
+                f"{b_name} वर ताजे बेक केलेले पेस्ट्री आणि चवदार पदार्थ.",
+                f"मित्रत्वाचा बेकर आणि सुंदर कस्टम डिझाइन केक.",
+                f"वाजवी किंमती, मऊ ब्रेड आणि छान सुवास.",
+                f"{b_name} वर तात्काळ पॅकिंग आणि छान चव.",
+                f"विविध फ्लेवर्स आणि विना अंड्याचे पर्याय उपलब्ध.",
+                f"स्वच्छ दुकान आणि पदार्थांचे आरोग्यदायी प्रदर्शन.",
+                f"{b_name} च्या केकमुळे आमचा सण आणखी खास झाला.",
+                f"गोडप्रेमींसाठी स्वर्गाचे ठिकाण! {b_name} सर्वोत्तम आहे.",
+                f"{b_name} वर नेहमी ताजे आणि चवदार पदार्थ मिळतात."
+            ]
         }
     }
 
