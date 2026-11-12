@@ -19,8 +19,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Use DB_NAME from environment or fallback safely to a local relative file
-DB_NAME = os.getenv("DB_NAME", "platform_data.db")
+# ---------------------------------------------------------------
+# Database configuration
+#   * If TURSO_DATABASE_URL is set  -> Turso (libsql) cloud database (persistent on Render)
+#   * Otherwise                     -> local SQLite file via aiosqlite (local development)
+# ---------------------------------------------------------------
+DB_NAME = os.getenv("DB_NAME", "platform_data.db")  # local SQLite fallback path
+TURSO_DATABASE_URL = os.getenv("TURSO_DATABASE_URL", "").strip()
+TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN", "").strip()
+USE_TURSO = bool(TURSO_DATABASE_URL)
+
+if USE_TURSO:
+    import libsql_client  # only required when Turso is configured
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret_key_please_change_in_production")
 ALGORITHM = "HS256"
 
@@ -302,51 +312,182 @@ CLOSINGS = {
 }
 
 
-async def init_db():
-    db_dir = os.path.dirname(DB_NAME)
-    if db_dir:
-        os.makedirs(db_dir, exist_ok=True)
-    async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute("PRAGMA busy_timeout = 5000")
+# ---------------------------------------------------------------
+# Database access layer
+# Exposes one aiosqlite-style interface for both backends so every
+# endpoint can simply do:  async with get_db() as db: ...
+# ---------------------------------------------------------------
+class TursoRow:
+    """Row supporting row[0], row["col"], tuple unpacking and dict(row)."""
+    __slots__ = ("_cols", "_vals")
 
-        await db.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE,
-                phone TEXT UNIQUE,
-                password TEXT,
-                role TEXT DEFAULT 'owner',
-                otp_code TEXT,
-                pin_code TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        await db.execute('''
-            CREATE TABLE IF NOT EXISTS businesses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                owner_id INTEGER,
-                name TEXT,
-                category TEXT DEFAULT 'Restaurant / Cafe',
-                google_link TEXT,
-                unique_link TEXT UNIQUE,
-                status TEXT DEFAULT 'pending',
-                positive_tags TEXT DEFAULT '',
-                negative_tags TEXT DEFAULT '',
-                FOREIGN KEY(owner_id) REFERENCES users(id)
-            )
-        ''')
-        await db.execute('''
-            CREATE TABLE IF NOT EXISTS reviews (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                business_id INTEGER,
-                customer_name TEXT,
-                rating INTEGER,
-                tags TEXT,
-                feedback_text TEXT,
-                ai_draft TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
+    def __init__(self, cols, vals):
+        self._cols = cols
+        self._vals = vals
+
+    def __getitem__(self, key):
+        if isinstance(key, (int, slice)):
+            return self._vals[key]
+        try:
+            return self._vals[self._cols.index(key)]
+        except ValueError:
+            raise KeyError(key)
+
+    def __iter__(self):
+        return iter(self._vals)
+
+    def __len__(self):
+        return len(self._vals)
+
+    def keys(self):
+        return list(self._cols)
+
+
+class TursoCursor:
+    def __init__(self, result_set):
+        cols = list(result_set.columns)
+        self._rows = [
+            TursoRow(cols, [r[i] for i in range(len(cols))]) for r in result_set.rows
+        ]
+        self.lastrowid = getattr(result_set, "last_insert_rowid", None)
+        self.rowcount = getattr(result_set, "rows_affected", None)
+
+    async def fetchone(self):
+        return self._rows[0] if self._rows else None
+
+    async def fetchall(self):
+        return list(self._rows)
+
+
+class _AwaitableCursor:
+    """Lets `await db.execute(...)` and `async with db.execute(...) as cur` both work."""
+
+    def __init__(self, coro):
+        self._coro = coro
+        self._cursor = None
+
+    def __await__(self):
+        return self._coro.__await__()
+
+    async def __aenter__(self):
+        self._cursor = await self._coro
+        return self._cursor
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
+class TursoConnection:
+    """Thin aiosqlite-compatible wrapper around a libsql_client client.
+
+    Turso runs each statement over HTTP and commits it immediately,
+    so commit() is a no-op kept for API compatibility.
+    """
+
+    def __init__(self, client):
+        self._client = client
+
+    async def _run(self, sql, params):
+        result_set = await self._client.execute(sql, list(params))
+        return TursoCursor(result_set)
+
+    def execute(self, sql, params=()):
+        return _AwaitableCursor(self._run(sql, params))
+
+    async def commit(self):
+        return None
+
+
+_turso_client = None
+
+
+def _get_turso_client():
+    global _turso_client
+    if _turso_client is None:
+        # libsql:// uses websockets; https:// is more reliable on hosted platforms like Render
+        url = TURSO_DATABASE_URL
+        if url.startswith("libsql://"):
+            url = "https://" + url[len("libsql://"):]
+        _turso_client = libsql_client.create_client(url=url, auth_token=TURSO_AUTH_TOKEN or None)
+    return _turso_client
+
+
+async def close_turso_client():
+    global _turso_client
+    if _turso_client is not None:
+        try:
+            await _turso_client.close()
+        finally:
+            _turso_client = None
+
+
+@asynccontextmanager
+async def get_db():
+    if USE_TURSO:
+        yield TursoConnection(_get_turso_client())
+    else:
+        async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+            db.row_factory = aiosqlite.Row
+            yield db
+
+
+SCHEMA_STATEMENTS = [
+    """
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE,
+        phone TEXT UNIQUE,
+        password TEXT,
+        role TEXT DEFAULT 'owner',
+        otp_code TEXT,
+        pin_code TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS businesses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner_id INTEGER,
+        name TEXT,
+        category TEXT DEFAULT 'Restaurant / Cafe',
+        google_link TEXT,
+        unique_link TEXT UNIQUE,
+        status TEXT DEFAULT 'pending',
+        positive_tags TEXT DEFAULT '',
+        negative_tags TEXT DEFAULT '',
+        FOREIGN KEY(owner_id) REFERENCES users(id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS reviews (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        customer_name TEXT,
+        rating INTEGER,
+        tags TEXT,
+        feedback_text TEXT,
+        ai_draft TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+]
+
+
+async def init_db():
+    if USE_TURSO:
+        print("[DB] Using Turso (libsql) cloud database")
+    else:
+        print(f"[DB] TURSO_DATABASE_URL not set - using local SQLite file: {DB_NAME}")
+        db_dir = os.path.dirname(DB_NAME)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+
+    async with get_db() as db:
+        if not USE_TURSO:
+            await db.execute("PRAGMA busy_timeout = 5000")
+
+        for stmt in SCHEMA_STATEMENTS:
+            await db.execute(stmt)
 
         async with db.execute("SELECT id FROM users WHERE email = ?", (ADMIN_EMAIL,)) as cursor:
             if not await cursor.fetchone():
@@ -359,7 +500,11 @@ async def init_db():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    yield
+    try:
+        yield
+    finally:
+        if USE_TURSO:
+            await close_turso_client()
 
 # NOTE: `app` must be created BEFORE any @app.get / @app.post decorator below.
 app = FastAPI(title="ReviewPlatform API", lifespan=lifespan)
@@ -491,7 +636,7 @@ async def register_request_otp(req: RegisterOTPReq, background_tasks: Background
 
     otp_code = str(random.randint(100000, 999999))
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         col = "email" if is_email else "phone"
         async with db.execute(f"SELECT id FROM users WHERE {col} = ?", (req.identifier,)) as cursor:
             if not await cursor.fetchone():
@@ -508,7 +653,7 @@ async def register_verify(req: RegisterVerifyReq):
     is_email = is_valid_email(req.identifier)
     col = "email" if is_email else "phone"
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         async with db.execute(f"SELECT id, otp_code FROM users WHERE {col} = ?", (req.identifier,)) as cursor:
             user = await cursor.fetchone()
             if not user or user[1] != req.otp:
@@ -537,7 +682,7 @@ async def request_otp(req: OTPRequest, background_tasks: BackgroundTasks):
     is_email = is_valid_email(req.identifier)
     col = "email" if is_email else "phone"
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         async with db.execute(f"SELECT id FROM users WHERE {col} = ?", (req.identifier,)) as cursor:
             if not await cursor.fetchone():
                 raise HTTPException(status_code=404, detail="Account not found. Please register first.")
@@ -551,7 +696,7 @@ async def request_otp(req: OTPRequest, background_tasks: BackgroundTasks):
 
 @app.post("/api/auth/login")
 async def login(req: LoginRequest, response: Response):
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         async with db.execute("SELECT id, role, password, otp_code, pin_code FROM users WHERE email = ? OR phone = ?", (req.identifier, req.identifier)) as cursor:
             user = await cursor.fetchone()
             if not user:
@@ -581,7 +726,7 @@ async def set_pin(req: SetPinRequest, auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
     if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         await db.execute("UPDATE users SET pin_code = ? WHERE id = ?", (req.pin, user["id"]))
         await db.commit()
     return {"message": "PIN updated successfully"}
@@ -596,8 +741,7 @@ async def get_my_businesses(auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
     if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
-        db.row_factory = aiosqlite.Row
+    async with get_db() as db:
         async with db.execute("SELECT * FROM businesses WHERE owner_id = ?", (user["id"],)) as cursor:
             rows = await cursor.fetchall()
 
@@ -626,7 +770,7 @@ async def add_business_inside_dashboard(req: BusinessCreate, auth_token: Optiona
     neg = ",".join(neg_list)
 
     unique_slug = uuid.uuid4().hex[:12]
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         await db.execute("INSERT INTO businesses (owner_id, name, category, google_link, unique_link, status, positive_tags, negative_tags) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)",
                       (user["id"], req.name, cat, req.google_link, unique_slug, pos, neg))
         await db.commit()
@@ -640,7 +784,7 @@ async def update_business_tags(req: TagUpdate, auth_token: Optional[str] = Cooki
     pos_joined = ",".join(req.positive_tags)
     neg_joined = ",".join(req.negative_tags)
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         async with db.execute("SELECT id FROM businesses WHERE id = ? AND owner_id = ?", (req.business_id, user["id"])) as cursor:
             if not await cursor.fetchone():
                 raise HTTPException(status_code=403, detail="Forbidden")
@@ -655,8 +799,7 @@ async def get_reviews_for_business(business_id: int, auth_token: Optional[str] =
     user = get_current_user(auth_token)
     if not user or user["role"] != "owner": raise HTTPException(status_code=401, detail="Unauthorized")
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
-        db.row_factory = aiosqlite.Row
+    async with get_db() as db:
         async with db.execute("SELECT id FROM businesses WHERE id = ? AND owner_id = ?", (business_id, user["id"])) as cursor:
             if not await cursor.fetchone():
                 raise HTTPException(status_code=403, detail="Forbidden")
@@ -669,7 +812,7 @@ async def change_admin_password(req: AdminChangePassword, auth_token: Optional[s
     user = get_current_user(auth_token)
     if not user or user["role"] != "admin": raise HTTPException(status_code=401, detail="Unauthorized")
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         async with db.execute("SELECT password FROM users WHERE id = ?", (user["id"],)) as cursor:
             row = await cursor.fetchone()
             if not row: raise HTTPException(status_code=404, detail="Admin not found")
@@ -685,8 +828,7 @@ async def get_all_businesses(auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
     if not user or user["role"] != "admin": raise HTTPException(status_code=401, detail="Unauthorized")
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
-        db.row_factory = aiosqlite.Row
+    async with get_db() as db:
         async with db.execute('''
             SELECT b.*, COALESCE(u.email, u.phone) as owner_email
             FROM businesses b
@@ -700,7 +842,7 @@ async def toggle_business(req: BusinessToggle, auth_token: Optional[str] = Cooki
     user = get_current_user(auth_token)
     if not user or user["role"] != "admin": raise HTTPException(status_code=401, detail="Unauthorized")
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         await db.execute("UPDATE businesses SET status = ? WHERE id = ?", (req.status, req.business_id))
         await db.commit()
     return {"message": f"Business {req.status}"}
@@ -710,7 +852,7 @@ async def delete_business(business_id: int, auth_token: Optional[str] = Cookie(N
     user = get_current_user(auth_token)
     if not user or user["role"] != "admin": raise HTTPException(status_code=401, detail="Unauthorized")
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         async with db.execute("SELECT id FROM businesses WHERE id = ?", (business_id,)) as cursor:
             if not await cursor.fetchone():
                 raise HTTPException(status_code=404, detail="Business not found")
@@ -726,8 +868,7 @@ async def get_all_reviews(auth_token: Optional[str] = Cookie(None)):
     user = get_current_user(auth_token)
     if not user or user["role"] != "admin": raise HTTPException(status_code=401, detail="Unauthorized")
 
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
-        db.row_factory = aiosqlite.Row
+    async with get_db() as db:
         async with db.execute('''
             SELECT r.*, b.name as business_name
             FROM reviews r
@@ -739,8 +880,7 @@ async def get_all_reviews(auth_token: Optional[str] = Cookie(None)):
 
 @app.get("/api/business/public/{unique_link}")
 async def get_business_public(unique_link: str):
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
-        db.row_factory = aiosqlite.Row
+    async with get_db() as db:
         async with db.execute("SELECT id, name, category, google_link, status, unique_link, positive_tags, negative_tags FROM businesses WHERE unique_link = ?", (unique_link,)) as cursor:
             row = await cursor.fetchone()
     if not row: raise HTTPException(status_code=404, detail="Not found")
@@ -758,7 +898,7 @@ async def get_business_public(unique_link: str):
 
 @app.post("/api/reviews/submit")
 async def submit_review(req: ReviewSubmit):
-    async with aiosqlite.connect(DB_NAME, timeout=10.0) as db:
+    async with get_db() as db:
         async with db.execute("SELECT id FROM businesses WHERE unique_link = ?", (req.business_link,)) as cursor:
             row = await cursor.fetchone()
         if not row:
